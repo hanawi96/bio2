@@ -1,12 +1,13 @@
 <script lang="ts">
   import type { DraftPayload } from '../../types/draft';
+  import { Input, Button, Select, Card } from '$lib/ui';
+  import { Plus, Trash2, ChevronUp, ChevronDown, Link, Type, User } from 'lucide-svelte';
 
   let { draft = $bindable() }: { draft: DraftPayload | null } = $props();
 
   let newBlockType = $state<'text' | 'link_group'>('text');
 
   function generateSortKey(): string {
-    // Simple sort key generator
     const chars = 'abcdefghijklmnopqrstuvwxyz';
     let key = '';
     for (let i = 0; i < 4; i++) {
@@ -25,22 +26,18 @@
     const sortKey = generateSortKey();
 
     if (newBlockType === 'text') {
-      draft.blocks = [
-        ...draft.blocks,
-        {
-          id: generateId(),
-          type: 'text',
-          sort_key: sortKey,
-          ref_id: null,
-          content: { text: 'New text', variant: 'body' },
-          is_visible: true
-        }
-      ];
+      draft.blocks = [...draft.blocks, {
+        id: generateId(),
+        type: 'text',
+        sort_key: sortKey,
+        ref_id: null,
+        content: { text: 'New text', variant: 'body' },
+        is_visible: true
+      }];
     } else if (newBlockType === 'link_group') {
       const groupId = generateId();
       const groupIdStr = String(groupId);
 
-      // Add group
       draft.link_groups = {
         ...draft.link_groups,
         [groupIdStr]: {
@@ -52,24 +49,16 @@
         }
       };
 
-      // Add block
-      draft.blocks = [
-        ...draft.blocks,
-        {
-          id: generateId(),
-          type: 'link_group',
-          sort_key: sortKey,
-          ref_id: groupId,
-          content: {},
-          is_visible: true
-        }
-      ];
+      draft.blocks = [...draft.blocks, {
+        id: generateId(),
+        type: 'link_group',
+        sort_key: sortKey,
+        ref_id: groupId,
+        content: {},
+        is_visible: true
+      }];
 
-      // Initialize empty links array
-      draft.links = {
-        ...draft.links,
-        [groupIdStr]: []
-      };
+      draft.links = { ...draft.links, [groupIdStr]: [] };
     }
   }
 
@@ -77,7 +66,6 @@
     if (!draft) return;
     const block = draft.blocks[index];
 
-    // If link_group, also remove the group and links
     if (block.type === 'link_group' && block.ref_id) {
       const groupIdStr = String(block.ref_id);
       const { [groupIdStr]: _, ...restGroups } = draft.link_groups;
@@ -95,31 +83,25 @@
     if (newIndex < 0 || newIndex >= draft.blocks.length) return;
 
     const blocks = [...draft.blocks];
-    // Swap sort_keys
     const tempKey = blocks[index].sort_key;
     blocks[index].sort_key = blocks[newIndex].sort_key;
     blocks[newIndex].sort_key = tempKey;
-
-    // Swap positions
     [blocks[index], blocks[newIndex]] = [blocks[newIndex], blocks[index]];
     draft.blocks = blocks;
   }
 
   function addLink(groupIdStr: string) {
     if (!draft) return;
-
-    const newLink = {
-      id: generateId(),
-      title: 'New Link',
-      url: 'https://',
-      icon_asset_id: null,
-      sort_key: generateSortKey(),
-      is_active: true
-    };
-
     draft.links = {
       ...draft.links,
-      [groupIdStr]: [...(draft.links[groupIdStr] || []), newLink]
+      [groupIdStr]: [...(draft.links[groupIdStr] || []), {
+        id: generateId(),
+        title: 'New Link',
+        url: 'https://',
+        icon_asset_id: null,
+        sort_key: generateSortKey(),
+        is_active: true
+      }]
     };
   }
 
@@ -131,158 +113,211 @@
     };
   }
 
-  function moveLink(groupIdStr: string, index: number, direction: 'up' | 'down') {
+  function moveLink(groupIdStr: string, linkIndex: number, direction: 'up' | 'down') {
     if (!draft) return;
-    const links = [...(draft.links[groupIdStr] || [])];
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    const links = draft.links[groupIdStr];
+    if (!links) return;
+
+    const newIndex = direction === 'up' ? linkIndex - 1 : linkIndex + 1;
     if (newIndex < 0 || newIndex >= links.length) return;
 
-    // Swap sort_keys
-    const tempKey = links[index].sort_key;
-    links[index].sort_key = links[newIndex].sort_key;
-    links[newIndex].sort_key = tempKey;
+    const newLinks = [...links];
+    // Swap sort_key
+    const tempKey = newLinks[linkIndex].sort_key;
+    newLinks[linkIndex].sort_key = newLinks[newIndex].sort_key;
+    newLinks[newIndex].sort_key = tempKey;
+    // Swap positions
+    [newLinks[linkIndex], newLinks[newIndex]] = [newLinks[newIndex], newLinks[linkIndex]];
 
-    [links[index], links[newIndex]] = [links[newIndex], links[index]];
-    draft.links = { ...draft.links, [groupIdStr]: links };
+    draft.links = {
+      ...draft.links,
+      [groupIdStr]: newLinks
+    };
   }
 
-  // Sort blocks by sort_key for display
   const sortedBlocks = $derived(
     draft ? [...draft.blocks].sort((a, b) => a.sort_key.localeCompare(b.sort_key)) : []
   );
+
+  const blockTypeOptions = [
+    { value: 'text', label: 'Text Block' },
+    { value: 'link_group', label: 'Link Group' }
+  ];
+
+  const textVariantOptions = [
+    { value: 'body', label: 'Body' },
+    { value: 'heading', label: 'Heading' },
+    { value: 'caption', label: 'Caption' }
+  ];
 </script>
 
 {#if draft}
   <div class="editor-panel">
+    <!-- Page Settings -->
     <section class="section">
-      <h3>Page Settings</h3>
-      <div class="field">
-        <label for="page-title">Title</label>
-        <input id="page-title" type="text" bind:value={draft.page.title} />
+      <h3 class="section-title">
+        <User size={16} />
+        Page Settings
+      </h3>
+      <div class="section-content">
+        <Input label="Title" bind:value={draft.page.title} placeholder="Page title" />
+
+        {#if draft.page.settings?.header}
+          <Input label="Name" bind:value={draft.page.settings.header.name} placeholder="Your name" />
+          <div class="field">
+            <label class="field-label">Bio</label>
+            <textarea
+              class="textarea"
+              bind:value={draft.page.settings.header.bio}
+              placeholder="Short bio..."
+              rows="3"
+            ></textarea>
+          </div>
+        {:else}
+          <button
+            class="add-header-btn"
+            onclick={() => {
+              if (draft) {
+                draft.page.settings = {
+                  ...draft.page.settings,
+                  header: { name: '', bio: '', verified: false, social: [], avatar_asset_id: null }
+                };
+              }
+            }}
+          >
+            <Plus size={18} />
+            Add Header
+          </button>
+        {/if}
       </div>
-      {#if draft.page.settings?.header}
-        <div class="field">
-          <label for="header-name">Name</label>
-          <input id="header-name" type="text" bind:value={draft.page.settings.header.name} />
-        </div>
-        <div class="field">
-          <label for="header-bio">Bio</label>
-          <textarea id="header-bio" bind:value={draft.page.settings.header.bio}></textarea>
-        </div>
-      {:else}
-        <button
-          class="btn-init-header"
-          onclick={() => {
-            if (draft) {
-              draft.page.settings = {
-                ...draft.page.settings,
-                header: { name: '', bio: '', verified: false, social: [], avatar_asset_id: null }
-              };
-            }
-          }}
-        >
-          + Add Header
-        </button>
-      {/if}
     </section>
 
+    <!-- Blocks -->
     <section class="section">
-      <h3>Blocks</h3>
-      <div class="add-block">
-        <select bind:value={newBlockType}>
-          <option value="text">Text</option>
-          <option value="link_group">Link Group</option>
-        </select>
-        <button onclick={addBlock}>Add Block</button>
+      <h3 class="section-title">
+        <Type size={16} />
+        Blocks
+      </h3>
+
+      <div class="add-block-row">
+        <Select
+          bind:value={newBlockType}
+          options={blockTypeOptions}
+        />
+        <Button variant="primary" size="md" onclick={addBlock}>
+          <Plus size={16} />
+          Add
+        </Button>
       </div>
 
       <div class="blocks-list">
         {#each sortedBlocks as block, index (block.id)}
-          <div class="block-item">
+          <Card variant="outlined" padding="none" class="block-card">
             <div class="block-header">
-              <span class="block-type">{block.type}</span>
+              <span class="block-type">
+                {#if block.type === 'text'}
+                  <Type size={14} />
+                {:else}
+                  <Link size={14} />
+                {/if}
+                {block.type === 'link_group' ? 'Link Group' : 'Text'}
+              </span>
               <div class="block-actions">
-                <button onclick={() => moveBlock(index, 'up')} disabled={index === 0}>↑</button>
-                <button onclick={() => moveBlock(index, 'down')} disabled={index === sortedBlocks.length - 1}>↓</button>
-                <button onclick={() => removeBlock(index)} class="btn-delete">×</button>
+                <button class="icon-btn" onclick={() => moveBlock(index, 'up')} disabled={index === 0}>
+                  <ChevronUp size={16} />
+                </button>
+                <button class="icon-btn" onclick={() => moveBlock(index, 'down')} disabled={index === sortedBlocks.length - 1}>
+                  <ChevronDown size={16} />
+                </button>
+                <button class="icon-btn danger" onclick={() => removeBlock(index)}>
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
 
-            {#if block.type === 'text'}
-              <div class="block-content">
-                <input
-                  type="text"
-                  value={block.content.text || ''}
+            <div class="block-body">
+              {#if block.type === 'text'}
+                <Input
+                  value={String(block.content.text || '')}
+                  placeholder="Text content"
                   oninput={(e) => {
                     const target = e.target as HTMLInputElement;
                     block.content = { ...block.content, text: target.value };
                   }}
-                  placeholder="Text content"
                 />
-                <select
-                  value={block.content.variant || 'body'}
-                  onchange={(e) => {
-                    const target = e.target as HTMLSelectElement;
-                    block.content = { ...block.content, variant: target.value };
-                  }}
-                >
-                  <option value="body">Body</option>
-                  <option value="heading">Heading</option>
-                  <option value="caption">Caption</option>
-                </select>
-              </div>
-            {:else if block.type === 'link_group' && block.ref_id}
-              {@const groupIdStr = String(block.ref_id)}
-              {@const group = draft.link_groups[groupIdStr]}
-              {#if group}
-                <div class="block-content">
-                  <input
-                    type="text"
+                <Select
+                  value={String(block.content.variant || 'body')}
+                  options={textVariantOptions}
+                  onchange={(v) => { block.content = { ...block.content, variant: v }; }}
+                />
+              {:else if block.type === 'link_group' && block.ref_id}
+                {@const groupIdStr = String(block.ref_id)}
+                {@const group = draft.link_groups[groupIdStr]}
+                {#if group}
+                  <Input
                     value={group.title}
+                    placeholder="Group title"
                     oninput={(e) => {
                       const target = e.target as HTMLInputElement;
                       draft.link_groups[groupIdStr] = { ...group, title: target.value };
                     }}
-                    placeholder="Group title"
                   />
 
                   <div class="links-section">
                     <div class="links-header">
-                      <span>Links</span>
-                      <button onclick={() => addLink(groupIdStr)}>+ Add Link</button>
+                      <span>Links ({draft.links[groupIdStr]?.length || 0})</span>
+                      <Button variant="ghost" size="sm" onclick={() => addLink(groupIdStr)}>
+                        <Plus size={14} />
+                        Add
+                      </Button>
                     </div>
+
                     {#each draft.links[groupIdStr] || [] as link, linkIndex (link.id)}
                       <div class="link-item">
-                        <input
-                          type="text"
+                        <div class="link-actions-row">
+                          <button
+                            class="link-move-btn"
+                            onclick={() => moveLink(groupIdStr, linkIndex, 'up')}
+                            disabled={linkIndex === 0}
+                            title="Move up"
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            class="link-move-btn"
+                            onclick={() => moveLink(groupIdStr, linkIndex, 'down')}
+                            disabled={linkIndex === (draft.links[groupIdStr]?.length || 0) - 1}
+                            title="Move down"
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                          <button class="link-move-btn danger" onclick={() => removeLink(groupIdStr, linkIndex)} title="Remove">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        <Input
                           value={link.title}
+                          placeholder="Link title"
                           oninput={(e) => {
                             const target = e.target as HTMLInputElement;
                             draft.links[groupIdStr][linkIndex] = { ...link, title: target.value };
                           }}
-                          placeholder="Link title"
                         />
-                        <input
-                          type="text"
+                        <Input
                           value={link.url}
+                          placeholder="https://..."
                           oninput={(e) => {
                             const target = e.target as HTMLInputElement;
                             draft.links[groupIdStr][linkIndex] = { ...link, url: target.value };
                           }}
-                          placeholder="URL"
                         />
-                        <div class="link-actions">
-                          <button onclick={() => moveLink(groupIdStr, linkIndex, 'up')} disabled={linkIndex === 0}>↑</button>
-                          <button onclick={() => moveLink(groupIdStr, linkIndex, 'down')} disabled={linkIndex === (draft.links[groupIdStr]?.length || 0) - 1}>↓</button>
-                          <button onclick={() => removeLink(groupIdStr, linkIndex)} class="btn-delete">×</button>
-                        </div>
                       </div>
                     {/each}
                   </div>
-                </div>
+                {/if}
               {/if}
-            {/if}
-          </div>
+            </div>
+          </Card>
         {/each}
       </div>
     </section>
@@ -291,79 +326,87 @@
 
 <style>
   .editor-panel {
-    padding: 16px;
+    padding: 20px;
   }
 
   .section {
-    margin-bottom: 24px;
+    margin-bottom: 32px;
   }
 
-  .section h3 {
-    font-size: 14px;
-    text-transform: uppercase;
-    color: #666;
-    margin-bottom: 12px;
-  }
-
-  .field {
-    margin-bottom: 12px;
-  }
-
-  .field label {
-    display: block;
-    font-size: 12px;
-    color: #666;
-    margin-bottom: 4px;
-  }
-
-  .btn-init-header {
-    width: 100%;
-    padding: 12px;
-    background: #f0f0f0;
-    border: 1px dashed #ccc;
-    border-radius: 8px;
-    cursor: pointer;
-    color: #666;
-  }
-
-  .btn-init-header:hover {
-    background: #e8e8e8;
-  }
-
-  .field input,
-  .field textarea {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-  }
-
-  .field textarea {
-    min-height: 60px;
-    resize: vertical;
-  }
-
-  .add-block {
+  .section-title {
     display: flex;
+    align-items: center;
     gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--lb-muted);
+    margin: 0 0 16px;
+  }
+
+  .section-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--lb-text);
+    margin-bottom: 6px;
+  }
+
+  .textarea {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 15px;
+    color: var(--lb-text);
+    background: var(--lb-surface);
+    border: 1px solid var(--lb-border);
+    border-radius: 10px;
+    resize: vertical;
+    font-family: inherit;
+  }
+
+  .textarea:focus {
+    outline: none;
+    border-color: var(--lb-primary);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+  }
+
+  .add-header-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 16px;
+    background: var(--lb-bg);
+    border: 2px dashed var(--lb-border);
+    border-radius: 12px;
+    color: var(--lb-muted);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .add-header-btn:hover {
+    border-color: var(--lb-primary);
+    color: var(--lb-primary);
+  }
+
+  .add-block-row {
+    display: flex;
+    gap: 10px;
     margin-bottom: 16px;
   }
 
-  .add-block select {
+  .add-block-row :global(.select-wrapper) {
     flex: 1;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-
-  .add-block button {
-    padding: 8px 16px;
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
   }
 
   .blocks-list {
@@ -372,25 +415,27 @@
     gap: 12px;
   }
 
-  .block-item {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
+  :global(.block-card) {
     overflow: hidden;
   }
 
   .block-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    background: #f5f5f5;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--lb-bg);
+    border-bottom: 1px solid var(--lb-border);
   }
 
   .block-type {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
-    color: #666;
+    color: var(--lb-muted);
   }
 
   .block-actions {
@@ -398,95 +443,106 @@
     gap: 4px;
   }
 
-  .block-actions button {
-    width: 24px;
-    height: 24px;
-    border: none;
-    background: #e0e0e0;
-    border-radius: 4px;
+  .icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--lb-surface);
+    border: 1px solid var(--lb-border);
+    border-radius: 6px;
+    color: var(--lb-muted);
     cursor: pointer;
-    font-size: 12px;
+    transition: all 0.15s;
   }
 
-  .block-actions button:disabled {
+  .icon-btn:hover:not(:disabled) {
+    background: var(--lb-border);
+    color: var(--lb-text);
+  }
+
+  .icon-btn:disabled {
     opacity: 0.3;
     cursor: not-allowed;
   }
 
-  .btn-delete {
-    background: #fee2e2 !important;
-    color: #dc2626;
+  .icon-btn.danger:hover:not(:disabled) {
+    background: rgba(255, 59, 48, 0.1);
+    border-color: var(--lb-error);
+    color: var(--lb-error);
   }
 
-  .block-content {
-    padding: 12px;
+  .block-body {
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-  }
-
-  .block-content input,
-  .block-content select {
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+    gap: 10px;
   }
 
   .links-section {
     margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid #e0e0e0;
+    padding-top: 12px;
+    border-top: 1px solid var(--lb-border);
   }
 
   .links-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    justify-content: space-between;
+    margin-bottom: 10px;
   }
 
   .links-header span {
     font-size: 12px;
-    color: #666;
-  }
-
-  .links-header button {
-    font-size: 12px;
-    padding: 4px 8px;
-    background: #e0e0e0;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+    font-weight: 500;
+    color: var(--lb-muted);
   }
 
   .link-item {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 8px;
-    background: #f9f9f9;
-    border-radius: 4px;
+    gap: 8px;
+    padding: 12px;
+    background: var(--lb-bg);
+    border-radius: 10px;
     margin-bottom: 8px;
   }
 
-  .link-item input {
-    font-size: 13px;
-  }
-
-  .link-actions {
+  .link-actions-row {
     display: flex;
     gap: 4px;
     justify-content: flex-end;
+    margin-bottom: 4px;
   }
 
-  .link-actions button {
-    width: 20px;
-    height: 20px;
-    border: none;
-    background: #e0e0e0;
+  .link-move-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--lb-surface);
+    border: 1px solid var(--lb-border);
     border-radius: 4px;
+    color: var(--lb-muted);
     cursor: pointer;
-    font-size: 10px;
+    transition: all 0.15s;
+  }
+
+  .link-move-btn:hover:not(:disabled) {
+    background: var(--lb-border);
+    color: var(--lb-text);
+  }
+
+  .link-move-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .link-move-btn.danger:hover:not(:disabled) {
+    background: rgba(255, 59, 48, 0.1);
+    border-color: var(--lb-error);
+    color: var(--lb-error);
   }
 </style>

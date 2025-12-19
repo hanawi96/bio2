@@ -18,5 +18,14 @@
     "typescript": "^5.0.0",
     "vite": "^6.0.0"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@melt-ui/svelte": "^0.86.6",
+    "@tailwindcss/postcss": "^4.1.18",
+    "autoprefixer": "^10.4.23",
+    "bits-ui": "^2.14.4",
+    "lucide-svelte": "^0.562.0",
+    "motion": "^12.23.26",
+    "tailwindcss": "^4.1.18"
+  }
 }

@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { PageData } from './$types';
+  import { Button, Input, Card, Badge } from '$lib/ui';
+  import { Plus, FileText, Globe, ChevronRight } from 'lucide-svelte';
 
   let { data }: { data: PageData } = $props();
 
@@ -35,124 +37,221 @@
   <title>My Pages</title>
 </svelte:head>
 
-<div class="pages-container">
-  <h1>My Pages</h1>
+<div class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>My Pages</h1>
+      <p>Create and manage your link-in-bio pages</p>
+    </div>
+  </header>
 
-  <div class="create-form">
-    <input
-      type="text"
-      bind:value={title}
-      placeholder="Page title..."
-      disabled={creating}
-    />
-    <button onclick={createPage} disabled={creating || !title.trim()}>
-      {creating ? 'Creating...' : 'Create Page'}
-    </button>
-  </div>
+  <Card variant="outlined" padding="lg" class="create-card">
+    <div class="create-form">
+      <Input
+        bind:value={title}
+        placeholder="Enter page title..."
+        disabled={creating}
+        onkeydown={(e) => e.key === 'Enter' && createPage()}
+      />
+      <Button
+        variant="primary"
+        size="lg"
+        onclick={createPage}
+        disabled={creating || !title.trim()}
+        loading={creating}
+      >
+        <Plus size={18} />
+        Create Page
+      </Button>
+    </div>
+  </Card>
 
-  <div class="pages-list">
+  <section class="pages-section">
+    <h2>Your Pages</h2>
+
     {#if data.pages && data.pages.length > 0}
-      {#each data.pages as page}
-        <a href="/app/pages/{page.id}/edit" class="page-card">
-          <h3>{page.title || 'Untitled'}</h3>
-          <div class="page-meta">
-            <span class="status" class:published={page.status === 'published'}>
-              {page.status}
-            </span>
-            <span class="locale">{page.locale}</span>
-          </div>
-        </a>
-      {/each}
+      <div class="pages-grid">
+        {#each data.pages as page}
+          <a href="/app/pages/{page.id}/edit" class="page-card">
+            <div class="page-icon">
+              <FileText size={24} />
+            </div>
+            <div class="page-info">
+              <h3>{page.title || 'Untitled'}</h3>
+              <div class="page-meta">
+                <Badge variant={page.status === 'published' ? 'success' : 'default'}>
+                  {#if page.status === 'published'}
+                    <Globe size={10} />
+                  {/if}
+                  {page.status}
+                </Badge>
+                <span class="locale">{page.locale.toUpperCase()}</span>
+              </div>
+            </div>
+            <ChevronRight size={20} class="chevron" />
+          </a>
+        {/each}
+      </div>
     {:else}
-      <p class="empty">No pages yet. Create your first page!</p>
+      <div class="empty-state">
+        <div class="empty-icon">
+          <FileText size={48} />
+        </div>
+        <h3>No pages yet</h3>
+        <p>Create your first page to get started</p>
+      </div>
     {/if}
-  </div>
+  </section>
 </div>
 
 <style>
-  .pages-container {
+  .page-container {
     max-width: 800px;
+    margin: 0 auto;
+    padding: 32px 24px;
   }
 
-  h1 {
-    margin-bottom: 24px;
+  .page-header {
+    margin-bottom: 32px;
+  }
+
+  .page-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--lb-text);
+    margin: 0;
+    letter-spacing: -0.5px;
+  }
+
+  .page-header p {
+    font-size: 16px;
+    color: var(--lb-muted);
+    margin: 8px 0 0;
+  }
+
+  :global(.create-card) {
+    margin-bottom: 40px;
   }
 
   .create-form {
     display: flex;
     gap: 12px;
-    margin-bottom: 32px;
   }
 
-  .create-form input {
+  .create-form :global(.input-wrapper) {
     flex: 1;
-    padding: 12px 16px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
   }
 
-  .create-form button {
-    padding: 12px 24px;
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
+  .pages-section h2 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--lb-muted);
+    margin: 0 0 16px;
   }
 
-  .create-form button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .pages-list {
+  .pages-grid {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
   }
 
   .page-card {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 16px;
     padding: 16px 20px;
-    background: white;
-    border-radius: 8px;
+    background: var(--lb-surface);
+    border: 1px solid var(--lb-border);
+    border-radius: 14px;
     text-decoration: none;
     color: inherit;
-    border: 1px solid #e0e0e0;
-    transition: box-shadow 0.15s;
+    transition: all 0.2s;
   }
 
   .page-card:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-color: var(--lb-primary);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.1);
   }
 
-  .page-card h3 {
-    margin: 0 0 8px;
+  .page-card:active {
+    transform: scale(0.99);
+  }
+
+  .page-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: var(--lb-bg);
+    border-radius: 12px;
+    color: var(--lb-primary);
+  }
+
+  .page-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .page-info h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--lb-text);
+    margin: 0 0 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .page-meta {
     display: flex;
-    gap: 12px;
-    font-size: 14px;
-    color: #666;
+    align-items: center;
+    gap: 10px;
   }
 
-  .status {
-    padding: 2px 8px;
-    background: #f0f0f0;
-    border-radius: 4px;
+  .locale {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--lb-muted);
   }
 
-  .status.published {
-    background: #dcfce7;
-    color: #166534;
+  :global(.chevron) {
+    color: var(--lb-muted);
+    flex-shrink: 0;
   }
 
-  .empty {
-    color: #666;
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px;
     text-align: center;
-    padding: 40px;
+  }
+
+  .empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: var(--lb-bg);
+    border-radius: 20px;
+    color: var(--lb-muted);
+    margin-bottom: 20px;
+  }
+
+  .empty-state h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--lb-text);
+    margin: 0 0 8px;
+  }
+
+  .empty-state p {
+    font-size: 14px;
+    color: var(--lb-muted);
+    margin: 0;
   }
 </style>
