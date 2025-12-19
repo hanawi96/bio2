@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "page": {
+    "id": 101,
+    "locale": "vi",
+    "settings": {
+      "header": {
+        "avatar_asset_id": 100,
+        "name": "Yen",
+        "bio": "Xin chào 👋",
+        "verified": true,
+        "social": [
+          {"type": "facebook", "url": "https://facebook.com/yendev96"},
+          {"type": "youtube", "url": "https://youtube.com/@yendev96"}
+        ]
+      },
+      "cover": {"kind": "image", "color": null, "asset_id": 200}
+    }
+  },
+  "theme": {
+    "preset_key": "theme_a",
+    "mode": "light",
+    "compiled": {
+      "page": {
+        "layout": {"textAlign": "center", "baseFontSize": "M", "pagePadding": 16, "blockGap": 12},
+        "defaults": {"linkGroup": {"textAlign": "center", "fontSize": "M", "radius": 16}}
+      },
+      "background": {"kind": "image", "asset_id": 200, "effects": {"blur": 2, "dim": 0.2, "overlayColor": null}}
+    }
+  },
+  "blocks": [
+    {
+      "type": "link_group",
+      "group": {
+        "id": 10,
+        "title": "Follow me",
+        "layout_type": "cards",
+        "layout_config": {"gap": 12, "columns": 1},
+        "final_style": {"textAlign": "left", "fontSize": "L", "radius": 20},
+        "links": [
+          {"title": "Instagram", "url": "https://instagram.com/yendev96", "icon_url": null},
+          {"title": "TikTok", "url": "https://tiktok.com/@yendev96", "icon_url": null}
+        ]
+      }
+    },
+    {"type": "text", "content": {"text": "My products", "variant": "heading"}}
+  ]
+}

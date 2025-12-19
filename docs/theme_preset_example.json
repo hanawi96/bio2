@@ -1,0 +1,199 @@
+{
+  "meta": {
+    "schemaVersion": 1,
+    "id": "theme_a",
+    "name": "Theme A (Free)",
+    "tier": "free",
+    "visibility": "public",
+    "supports": {
+      "modes": [
+        "light",
+        "dark",
+        "compact"
+      ],
+      "backgroundEffects": true
+    },
+    "contract": {
+      "controls": [
+        {
+          "keyPath": "page.mode",
+          "type": "select",
+          "options": [
+            "light",
+            "dark",
+            "compact"
+          ],
+          "label": "Mode (page)"
+        },
+        {
+          "keyPath": "page.layout.textAlign",
+          "type": "select",
+          "options": [
+            "left",
+            "center",
+            "right"
+          ],
+          "label": "Text align (page)"
+        },
+        {
+          "keyPath": "page.layout.baseFontSize",
+          "type": "select",
+          "options": [
+            "S",
+            "M",
+            "L",
+            "XL"
+          ],
+          "label": "Font size (page)"
+        },
+        {
+          "keyPath": "page.layout.pagePadding",
+          "type": "slider",
+          "min": 0,
+          "max": 32,
+          "step": 1,
+          "label": "Page padding"
+        },
+        {
+          "keyPath": "page.layout.blockGap",
+          "type": "slider",
+          "min": 0,
+          "max": 32,
+          "step": 1,
+          "label": "Block spacing"
+        },
+        {
+          "keyPath": "page.defaults.linkGroup.textAlign",
+          "type": "select",
+          "options": [
+            "left",
+            "center",
+            "right"
+          ],
+          "label": "Link group text align (default)"
+        },
+        {
+          "keyPath": "page.defaults.linkGroup.fontSize",
+          "type": "select",
+          "options": [
+            "S",
+            "M",
+            "L",
+            "XL"
+          ],
+          "label": "Link group font size (default)"
+        },
+        {
+          "keyPath": "background.effects.blur",
+          "type": "slider",
+          "min": 0,
+          "max": 12,
+          "step": 1,
+          "label": "Background blur"
+        },
+        {
+          "keyPath": "background.effects.dim",
+          "type": "slider",
+          "min": 0,
+          "max": 0.8,
+          "step": 0.05,
+          "label": "Background dim"
+        }
+      ],
+      "constraints": {
+        "background.effects.dim": {
+          "min": 0,
+          "max": 0.8
+        },
+        "background.effects.blur": {
+          "min": 0,
+          "max": 12
+        }
+      },
+      "notes": [
+        "Theme controls chỉ chỉnh ở mức theme/page defaults.",
+        "Muốn link style riêng: tạo Link Group riêng và set group style_override."
+      ]
+    }
+  },
+  "tokens": {
+    "color": {
+      "gray": {
+        "900": "#0B0F19",
+        "50": "#F5F7FF"
+      }
+    },
+    "typography": {
+      "fontFamily": {
+        "sans": "Inter"
+      },
+      "fontSize": {
+        "M": 16,
+        "L": 18,
+        "XL": 22
+      }
+    },
+    "space": {
+      "4": 4,
+      "8": 8,
+      "12": 12,
+      "16": 16,
+      "24": 24
+    },
+    "radius": {
+      "16": 16,
+      "20": 20
+    },
+    "elevation": {
+      "sm": "0 4px 14px rgba(0,0,0,0.10)"
+    }
+  },
+  "semantic": {
+    "color": {
+      "text.default": "{tokens.color.gray.50}",
+      "bg.page": "{tokens.color.gray.900}"
+    }
+  },
+  "page": {
+    "mode": "light",
+    "layout": {
+      "textAlign": "center",
+      "baseFontSize": "M",
+      "pagePadding": 16,
+      "blockGap": 12
+    },
+    "defaults": {
+      "linkGroup": {
+        "textAlign": "center",
+        "fontSize": "M",
+        "radius": 16
+      }
+    }
+  },
+  "background": {
+    "kind": "color",
+    "color": "#0B0F19",
+    "effects": {
+      "blur": 0,
+      "dim": 0,
+      "overlayColor": null
+    }
+  },
+  "modes": {
+    "dark": {
+      "page": {
+        "layout": {
+          "textAlign": "center"
+        }
+      }
+    },
+    "compact": {
+      "page": {
+        "layout": {
+          "pagePadding": 12,
+          "blockGap": 8
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "based_on_preset_key": "theme_a",
+  "name": "My Custom Theme",
+  "patch": {
+    "page": {
+      "layout": {
+        "textAlign": "left",
+        "pagePadding": 20
+      }
+    },
+    "background": {
+      "kind": "color",
+      "color": "#1a1a2e"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "page": {
+    "layout": {
+      "textAlign": "left",
+      "baseFontSize": "L"
+    }
+  },
+  "background": {
+    "effects": {
+      "dim": 0.25
+    }
+  }
+}
