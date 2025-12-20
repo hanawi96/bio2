@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { bio, type BioData } from '$lib/api/client';
 	import { getAuth } from '$lib/stores/auth.svelte';
+	import { Package, Link, Eye, MousePointerClick, FileEdit, Palette, ExternalLink, ArrowRight } from 'lucide-svelte';
 
 	const auth = getAuth();
 
@@ -40,35 +41,35 @@
 <div class="dashboard">
 	<!-- Welcome -->
 	<div class="welcome">
-		<h1>Xin chào{auth.user?.username ? `, @${auth.user.username}` : ''}! 👋</h1>
+		<h1>Xin chào{auth.user?.username ? `, @${auth.user.username}` : ''}!</h1>
 		<p>Quản lý trang bio của bạn từ đây</p>
 	</div>
 
 	<!-- Stats Grid -->
 	<div class="stats-grid">
 		<div class="stat-card">
-			<div class="stat-icon blue">📦</div>
+			<div class="stat-icon blue"><Package size={20} /></div>
 			<div class="stat-info">
 				<span class="stat-value">{totalBlocks}</span>
 				<span class="stat-label">Blocks</span>
 			</div>
 		</div>
 		<div class="stat-card">
-			<div class="stat-icon purple">🔗</div>
+			<div class="stat-icon purple"><Link size={20} /></div>
 			<div class="stat-info">
 				<span class="stat-value">{totalLinks}</span>
 				<span class="stat-label">Links</span>
 			</div>
 		</div>
 		<div class="stat-card">
-			<div class="stat-icon green">👁️</div>
+			<div class="stat-icon green"><Eye size={20} /></div>
 			<div class="stat-info">
 				<span class="stat-value">{activeLinks}</span>
 				<span class="stat-label">Hiển thị</span>
 			</div>
 		</div>
 		<div class="stat-card">
-			<div class="stat-icon orange">👆</div>
+			<div class="stat-icon orange"><MousePointerClick size={20} /></div>
 			<div class="stat-info">
 				<span class="stat-value">0</span>
 				<span class="stat-label">Clicks</span>
@@ -81,29 +82,29 @@
 		<div class="section-title">Bắt đầu nhanh</div>
 		<div class="actions-grid">
 			<a href="/bio" class="action-card">
-				<div class="action-icon">📝</div>
+				<div class="action-icon"><FileEdit size={24} /></div>
 				<div class="action-info">
 					<span class="action-title">Chỉnh sửa Bio</span>
 					<span class="action-desc">Thêm links, text, hình ảnh</span>
 				</div>
-				<span class="action-arrow">→</span>
+				<span class="action-arrow"><ArrowRight size={18} /></span>
 			</a>
 			<a href="/appearance" class="action-card">
-				<div class="action-icon">🎨</div>
+				<div class="action-icon"><Palette size={24} /></div>
 				<div class="action-info">
 					<span class="action-title">Tùy chỉnh giao diện</span>
 					<span class="action-desc">Theme, màu sắc, font</span>
 				</div>
-				<span class="action-arrow">→</span>
+				<span class="action-arrow"><ArrowRight size={18} /></span>
 			</a>
 			{#if auth.user?.username}
 				<a href="/{auth.user.username}" target="_blank" class="action-card">
-					<div class="action-icon">👁️</div>
+					<div class="action-icon"><Eye size={24} /></div>
 					<div class="action-info">
 						<span class="action-title">Xem trang Bio</span>
 						<span class="action-desc">linkbio.com/{auth.user.username}</span>
 					</div>
-					<span class="action-arrow">↗</span>
+					<span class="action-arrow"><ExternalLink size={18} /></span>
 				</a>
 			{/if}
 		</div>
@@ -122,7 +123,7 @@
 			</div>
 		{:else if recentLinks.length === 0}
 			<div class="empty-box">
-				<div class="empty-icon">🔗</div>
+				<div class="empty-icon"><Link size={40} /></div>
 				<p>Chưa có link nào</p>
 				<a href="/bio" class="btn-primary">Thêm link đầu tiên</a>
 			</div>
@@ -130,7 +131,7 @@
 			<div class="links-card">
 				{#each recentLinks as link}
 					<div class="link-row" class:inactive={!link.is_active}>
-						<div class="link-icon">🔗</div>
+						<div class="link-icon"><Link size={16} /></div>
 						<div class="link-info">
 							<span class="link-title">{link.title}</span>
 							<span class="link-url">{link.url}</span>
@@ -193,20 +194,24 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 1.25rem;
+		color: var(--color-text);
 	}
 
 	.stat-icon.blue {
 		background: rgba(0, 122, 255, 0.1);
+		color: #007aff;
 	}
 	.stat-icon.purple {
 		background: rgba(88, 86, 214, 0.1);
+		color: #5856d6;
 	}
 	.stat-icon.green {
 		background: rgba(52, 199, 89, 0.1);
+		color: #34c759;
 	}
 	.stat-icon.orange {
 		background: rgba(255, 149, 0, 0.1);
+		color: #ff9500;
 	}
 
 	.stat-info {
@@ -280,7 +285,10 @@
 	}
 
 	.action-icon {
-		font-size: 1.5rem;
+		color: var(--color-primary);
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.action-info {
@@ -302,7 +310,8 @@
 
 	.action-arrow {
 		color: var(--color-text-tertiary);
-		font-size: var(--text-lg);
+		display: flex;
+		align-items: center;
 	}
 
 	/* Links Card */
@@ -335,7 +344,9 @@
 	}
 
 	.link-icon {
-		font-size: 1rem;
+		color: var(--color-text-secondary);
+		display: flex;
+		align-items: center;
 	}
 
 	.link-info {
@@ -405,8 +416,10 @@
 	}
 
 	.empty-icon {
-		font-size: 2.5rem;
+		color: var(--color-text-tertiary);
 		margin-bottom: var(--space-3);
+		display: flex;
+		justify-content: center;
 	}
 
 	.empty-box p {

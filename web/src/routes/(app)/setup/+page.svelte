@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/api/client';
 	import { getAuth, setUsername } from '$lib/stores/auth.svelte';
+	import { Check, X, Loader2 } from 'lucide-svelte';
 
 	const authState = getAuth();
 
@@ -92,11 +93,11 @@
 					autocapitalize="off"
 				/>
 				{#if checking}
-					<span class="status checking">...</span>
+					<span class="status checking"><Loader2 size={16} class="spin" /></span>
 				{:else if available === true}
-					<span class="status available">✓</span>
+					<span class="status available"><Check size={16} /></span>
 				{:else if available === false}
-					<span class="status taken">✕</span>
+					<span class="status taken"><X size={16} /></span>
 				{/if}
 			</div>
 
@@ -195,13 +196,22 @@
 	}
 
 	.status {
-		font-size: 1rem;
 		width: 24px;
-		text-align: center;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.status.checking {
 		color: #666;
+	}
+
+	:global(.spin) {
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
 	}
 
 	.status.available {

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { bio, type BioData, type BlockWithGroup, type Link } from '$lib/api/client';
 	import { getAuth } from '$lib/stores/auth.svelte';
+	import { Eye, Link as LinkIcon, FileText, Image, ShoppingBag, Minus, GripVertical, Eye as EyeIcon, EyeOff, Trash2, Pencil, X, Plus } from 'lucide-svelte';
 
 	const auth = getAuth();
 
@@ -157,11 +158,11 @@
 	);
 
 	const blockTypes = [
-		{ type: 'link_group', icon: '🔗', label: 'Link Group', desc: 'Nhóm các liên kết', available: true },
-		{ type: 'text', icon: '📝', label: 'Text', desc: 'Văn bản, tiêu đề', available: false },
-		{ type: 'image', icon: '🖼️', label: 'Image', desc: 'Hình ảnh', available: false },
-		{ type: 'product', icon: '🛍️', label: 'Product', desc: 'Sản phẩm', available: false },
-		{ type: 'spacer', icon: '↕️', label: 'Spacer', desc: 'Khoảng cách', available: false }
+		{ type: 'link_group', icon: 'link', label: 'Link Group', desc: 'Nhóm các liên kết', available: true },
+		{ type: 'text', icon: 'text', label: 'Text', desc: 'Văn bản, tiêu đề', available: false },
+		{ type: 'image', icon: 'image', label: 'Image', desc: 'Hình ảnh', available: false },
+		{ type: 'product', icon: 'product', label: 'Product', desc: 'Sản phẩm', available: false },
+		{ type: 'spacer', icon: 'spacer', label: 'Spacer', desc: 'Khoảng cách', available: false }
 	];
 </script>
 
@@ -174,7 +175,7 @@
 		</div>
 		{#if auth.user?.username}
 			<a href="/{auth.user.username}" target="_blank" class="preview-link">
-				<span>👁️</span> Xem trang
+				<Eye size={16} /> Xem trang
 			</a>
 		{/if}
 	</div>
@@ -221,7 +222,14 @@
 								onclick={() => (bt.type === 'link_group' ? addLinkGroup() : null)}
 								disabled={!bt.available}
 							>
-								<span class="item-icon">{bt.icon}</span>
+								<span class="item-icon">
+									{#if bt.icon === 'link'}<LinkIcon size={20} />
+									{:else if bt.icon === 'text'}<FileText size={20} />
+									{:else if bt.icon === 'image'}<Image size={20} />
+									{:else if bt.icon === 'product'}<ShoppingBag size={20} />
+									{:else if bt.icon === 'spacer'}<Minus size={20} />
+									{/if}
+								</span>
 								<div class="item-info">
 									<span class="item-label">{bt.label}</span>
 									<span class="item-desc">{bt.desc}</span>
@@ -242,7 +250,7 @@
 				</div>
 			{:else if !bioData?.blocks.length}
 				<div class="empty-box">
-					<div class="empty-icon">📝</div>
+					<div class="empty-icon"><FileText size={40} /></div>
 					<h3>Bắt đầu tạo Bio</h3>
 					<p>Thêm Link Group để bắt đầu</p>
 				</div>
@@ -253,9 +261,9 @@
 							<!-- Block Header -->
 							<div class="block-head">
 								<div class="block-head-left">
-									<button class="drag-btn">⋮⋮</button>
+									<button class="drag-btn"><GripVertical size={16} /></button>
 									<span class="block-type">
-										{#if block.type === 'link_group'}🔗 Link Group{:else}📦 {block.type}{/if}
+										{#if block.type === 'link_group'}<LinkIcon size={14} /> Link Group{:else}<FileText size={14} /> {block.type}{/if}
 										{#if block.group?.links.length}
 											<span class="count">({block.group.links.length})</span>
 										{/if}
@@ -267,9 +275,9 @@
 										class:active={block.is_visible}
 										onclick={() => toggleBlockVisibility(block)}
 									>
-										{block.is_visible ? '👁️' : '👁️‍🗨️'}
+										{#if block.is_visible}<EyeIcon size={16} />{:else}<EyeOff size={16} />{/if}
 									</button>
-									<button class="icon-btn danger" onclick={() => deleteBlock(block.id)}>🗑️</button>
+									<button class="icon-btn danger" onclick={() => deleteBlock(block.id)}><Trash2 size={16} /></button>
 								</div>
 							</div>
 
@@ -304,8 +312,8 @@
 																>
 																	<span class="toggle-dot"></span>
 																</button>
-																<button class="mini-btn" onclick={() => startEditLink(link)}>✏️</button>
-																<button class="mini-btn danger" onclick={() => deleteLink(link.id)}>✕</button>
+																<button class="mini-btn" onclick={() => startEditLink(link)}><Pencil size={12} /></button>
+																<button class="mini-btn danger" onclick={() => deleteLink(link.id)}><X size={12} /></button>
 															</div>
 														</div>
 													{/if}
@@ -553,7 +561,10 @@
 	}
 
 	.item-icon {
-		font-size: 1.25rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--color-text-secondary);
 	}
 
 	.item-info {
@@ -612,8 +623,10 @@
 	}
 
 	.empty-icon {
-		font-size: 2.5rem;
+		color: var(--color-text-tertiary);
 		margin-bottom: var(--space-3);
+		display: flex;
+		justify-content: center;
 	}
 
 	.empty-box h3 {
@@ -666,9 +679,9 @@
 		background: none;
 		color: var(--color-text-tertiary);
 		padding: var(--space-1);
-		font-size: var(--text-sm);
-		letter-spacing: -2px;
 		cursor: grab;
+		display: flex;
+		align-items: center;
 	}
 
 	.drag-btn:hover {
@@ -683,6 +696,9 @@
 		font-size: var(--text-sm);
 		font-weight: 500;
 		color: var(--color-text);
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
 	}
 
 	.count {
@@ -700,11 +716,11 @@
 		height: 32px;
 		background: transparent;
 		border-radius: var(--radius-sm);
-		font-size: var(--text-sm);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		padding: 0;
+		color: var(--color-text-secondary);
 	}
 
 	.icon-btn:hover {
@@ -817,7 +833,6 @@
 		height: 28px;
 		background: transparent;
 		border-radius: var(--radius-sm);
-		font-size: var(--text-xs);
 		display: flex;
 		align-items: center;
 		justify-content: center;

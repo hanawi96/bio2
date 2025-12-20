@@ -534,3 +534,314 @@ input::placeholder, textarea::placeholder {
 	background: linear-gradient(135deg, #ff9500, #ff3b30);
 	color: white;
 }
+
+/* ========================================
+   Avatar & Profile Components - iOS Style
+   ======================================== */
+
+/* Avatar Upload */
+.avatar-upload {
+	position: relative;
+	display: inline-block;
+}
+
+.avatar-upload-preview {
+	width: 80px;
+	height: 80px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, var(--color-primary), #5856d6);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 2rem;
+	font-weight: 600;
+	color: white;
+	overflow: hidden;
+	border: 3px solid var(--color-bg-secondary);
+	box-shadow: var(--shadow-md);
+}
+
+.avatar-upload-preview img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.avatar-upload-btn {
+	position: absolute;
+	bottom: -4px;
+	right: -4px;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: var(--color-primary);
+	color: white;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 14px;
+	cursor: pointer;
+	border: 2px solid var(--color-bg-secondary);
+	box-shadow: var(--shadow-sm);
+	transition: all var(--transition-base);
+}
+
+.avatar-upload-btn:hover {
+	transform: scale(1.1);
+}
+
+.avatar-upload input[type="file"] {
+	display: none;
+}
+
+/* Profile Input */
+.profile-input {
+	background: var(--color-bg);
+	border: none;
+	border-radius: var(--radius-md);
+	padding: var(--space-3) var(--space-4);
+	font-size: var(--text-base);
+	width: 100%;
+	transition: all var(--transition-base);
+}
+
+.profile-input:focus {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.profile-input.username {
+	font-family: var(--font-mono);
+}
+
+/* Textarea for bio */
+.profile-textarea {
+	background: var(--color-bg);
+	border: none;
+	border-radius: var(--radius-md);
+	padding: var(--space-3) var(--space-4);
+	font-size: var(--text-sm);
+	width: 100%;
+	min-height: 80px;
+	resize: vertical;
+	font-family: inherit;
+	line-height: 1.5;
+	transition: all var(--transition-base);
+}
+
+.profile-textarea:focus {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.char-count {
+	font-size: var(--text-xs);
+	color: var(--color-text-tertiary);
+	text-align: right;
+	margin-top: var(--space-1);
+}
+
+.char-count.warning { color: var(--color-warning); }
+.char-count.danger { color: var(--color-danger); }
+
+/* ========================================
+   Social Icons - iOS Style
+   ======================================== */
+
+.social-icons-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: var(--space-2);
+}
+
+.social-icon-btn {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--space-1);
+	padding: var(--space-3);
+	background: var(--color-bg);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	border: 2px solid transparent;
+}
+
+.social-icon-btn:hover {
+	background: var(--color-bg-tertiary);
+}
+
+.social-icon-btn.active {
+	border-color: var(--color-primary);
+	background: var(--color-primary-light);
+}
+
+.social-icon-btn .icon {
+	font-size: 1.5rem;
+}
+
+.social-icon-btn .label {
+	font-size: var(--text-xs);
+	color: var(--color-text-secondary);
+}
+
+.social-icon-btn.active .label {
+	color: var(--color-primary);
+	font-weight: 500;
+}
+
+/* Social Link Input Row */
+.social-link-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3);
+	background: var(--color-bg);
+	border-radius: var(--radius-md);
+	margin-bottom: var(--space-2);
+}
+
+.social-link-row:last-child {
+	margin-bottom: 0;
+}
+
+.social-link-icon {
+	font-size: 1.25rem;
+	width: 32px;
+	text-align: center;
+	flex-shrink: 0;
+}
+
+.social-link-input {
+	flex: 1;
+	background: var(--color-bg-secondary);
+	border: none;
+	border-radius: var(--radius-sm);
+	padding: var(--space-2) var(--space-3);
+	font-size: var(--text-sm);
+}
+
+.social-link-input:focus {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.social-link-remove {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: var(--color-danger);
+	color: white;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	cursor: pointer;
+	padding: 0;
+	flex-shrink: 0;
+	opacity: 0.7;
+	transition: opacity var(--transition-fast);
+}
+
+.social-link-remove:hover {
+	opacity: 1;
+}
+
+/* Empty State */
+.empty-state {
+	text-align: center;
+	padding: var(--space-6);
+	color: var(--color-text-secondary);
+}
+
+.empty-state-icon {
+	font-size: 2.5rem;
+	margin-bottom: var(--space-3);
+	opacity: 0.5;
+}
+
+.empty-state-text {
+	font-size: var(--text-sm);
+	margin-bottom: var(--space-4);
+}
+
+/* Form Group */
+.form-group {
+	margin-bottom: var(--space-4);
+}
+
+.form-group:last-child {
+	margin-bottom: 0;
+}
+
+.form-label {
+	display: block;
+	font-size: var(--text-sm);
+	font-weight: 500;
+	color: var(--color-text);
+	margin-bottom: var(--space-2);
+}
+
+.form-hint {
+	font-size: var(--text-xs);
+	color: var(--color-text-tertiary);
+	margin-top: var(--space-1);
+}
+
+/* Input with prefix */
+.input-with-prefix {
+	display: flex;
+	align-items: center;
+	background: var(--color-bg);
+	border-radius: var(--radius-md);
+	overflow: hidden;
+}
+
+.input-prefix {
+	padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+	color: var(--color-text-secondary);
+	font-size: var(--text-sm);
+	background: var(--color-bg-tertiary);
+	border-right: 1px solid var(--color-separator);
+}
+
+.input-with-prefix input {
+	flex: 1;
+	border: none;
+	background: transparent;
+	padding: var(--space-3) var(--space-4);
+	font-size: var(--text-base);
+}
+
+.input-with-prefix input:focus {
+	outline: none;
+}
+
+.input-with-prefix:focus-within {
+	box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+/* Preview Social Icons */
+.preview-social-icons {
+	display: flex;
+	gap: var(--space-2);
+	justify-content: center;
+	margin-top: var(--space-2);
+}
+
+.preview-social-icon {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.3);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1rem;
+	transition: all var(--transition-base);
+}
+
+.preview-social-icon:hover {
+	background: rgba(255, 255, 255, 0.5);
+	transform: scale(1.1);
+}

@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { getAuth, logout } from '$lib/stores/auth.svelte';
+	import { LayoutDashboard, Link, Palette, Settings, Eye, Globe, Zap, LogOut } from 'lucide-svelte';
 
 	let { children } = $props();
 	const auth = getAuth();
@@ -35,10 +36,10 @@
 	const currentPath = $derived($page.url.pathname);
 
 	const navItems = [
-		{ href: '/dashboard', icon: 'house.fill', label: 'Dashboard' },
+		{ href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
 		{ href: '/bio', icon: 'link', label: 'My Bio' },
-		{ href: '/appearance', icon: 'paintbrush.fill', label: 'Giao diện' },
-		{ href: '/settings', icon: 'gearshape.fill', label: 'Cài đặt' }
+		{ href: '/appearance', icon: 'palette', label: 'Giao diện' },
+		{ href: '/settings', icon: 'settings', label: 'Cài đặt' }
 	];
 </script>
 
@@ -54,7 +55,7 @@
 			<!-- Sidebar -->
 			<aside class="sidebar">
 				<div class="sidebar-brand">
-					<div class="brand-icon">⚡</div>
+					<div class="brand-icon"><Zap size={20} color="white" /></div>
 					<span class="brand-text">LinkBio</span>
 				</div>
 
@@ -66,10 +67,10 @@
 							class:active={currentPath === item.href || currentPath.startsWith(item.href + '/')}
 						>
 							<span class="nav-icon">
-								{#if item.icon === 'house.fill'}🏠
-								{:else if item.icon === 'link'}🔗
-								{:else if item.icon === 'paintbrush.fill'}🎨
-								{:else if item.icon === 'gearshape.fill'}⚙️
+								{#if item.icon === 'dashboard'}<LayoutDashboard size={18} />
+								{:else if item.icon === 'link'}<Link size={18} />
+								{:else if item.icon === 'palette'}<Palette size={18} />
+								{:else if item.icon === 'settings'}<Settings size={18} />
 								{/if}
 							</span>
 							<span class="nav-label">{item.label}</span>
@@ -80,7 +81,7 @@
 				<div class="sidebar-footer">
 					{#if auth.user?.username}
 						<a href="/{auth.user.username}" target="_blank" class="preview-btn">
-							<span>👁️</span>
+							<Eye size={16} />
 							<span>Xem trang bio</span>
 						</a>
 					{/if}
@@ -93,7 +94,7 @@
 					<div class="topbar-left">
 						{#if auth.user?.username}
 							<div class="url-badge">
-								<span class="url-icon">🌐</span>
+								<Globe size={14} />
 								<span class="url-text">linkbio.com/{auth.user.username}</span>
 							</div>
 						{/if}
@@ -104,7 +105,7 @@
 								{auth.user?.email?.charAt(0).toUpperCase()}
 							</span>
 							<span class="user-name">{auth.user?.email}</span>
-							<span class="logout-icon">↗</span>
+							<LogOut size={14} class="logout-icon" />
 						</button>
 					</div>
 				</header>
@@ -219,9 +220,10 @@
 	}
 
 	.nav-icon {
-		font-size: 1.125rem;
 		width: 24px;
-		text-align: center;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.sidebar-footer {
@@ -279,10 +281,7 @@
 		background: var(--color-bg);
 		border-radius: var(--radius-full);
 		font-size: var(--text-xs);
-	}
-
-	.url-icon {
-		font-size: 0.875rem;
+		color: var(--color-text-secondary);
 	}
 
 	.url-text {
@@ -331,7 +330,10 @@
 
 	.logout-icon {
 		color: var(--color-text-tertiary);
-		font-size: 0.75rem;
+	}
+
+	:global(.logout-icon) {
+		color: var(--color-text-tertiary);
 	}
 
 	/* Content */

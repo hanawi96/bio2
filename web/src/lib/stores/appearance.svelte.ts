@@ -11,7 +11,7 @@ let customPatch = $state<Record<string, any>>({});
 let originalPatch = $state<Record<string, any>>({});
 let dirty = $state(false);
 
-// Default appearance values
+// Default appearance values (fallback khi preset không có)
 const defaultAppearance = {
 	page: {
 		layout: {
@@ -34,8 +34,12 @@ const defaultAppearance = {
 		style: 'default' as 'default' | 'minimal' | 'centered' | 'card',
 		showAvatar: true,
 		showBio: true,
+		showSocials: true,
 		avatarSize: 'M' as 'S' | 'M' | 'L',
-		avatarShape: 'circle' as 'circle' | 'rounded' | 'square'
+		avatarShape: 'circle' as 'circle' | 'rounded' | 'square',
+		bioSize: 'M' as 'S' | 'M' | 'L' | 'XL',
+		bioAlign: 'center' as 'left' | 'center' | 'right',
+		bioColor: '' as string // empty = use textSecondary from colors
 	},
 	links: {
 		style: 'filled' as 'filled' | 'outline' | 'soft' | 'ghost',
@@ -44,7 +48,8 @@ const defaultAppearance = {
 		padding: 16,
 		gap: 12,
 		textAlign: 'center' as 'left' | 'center' | 'right',
-		fontSize: 'M' as 'S' | 'M' | 'L'
+		fontSize: 'M' as 'S' | 'M' | 'L',
+		textColor: '' as string // empty = auto based on style
 	},
 	colors: {
 		primary: '#007aff',
@@ -58,6 +63,144 @@ const defaultAppearance = {
 
 export type AppearanceSettings = typeof defaultAppearance;
 
+// Lấy config từ preset theo ID
+function getPresetConfigById(presetId: number): Record<string, any> {
+	const preset = presets.find(p => p.id === presetId);
+	if (!preset?.config) return {};
+	return preset.config as Record<string, any>;
+}
+
+// Helper: parse CSS size value to pixels (vd: "16px" -> 16, "1rem" -> 16)
+function parseSize(value: any): number | undefined {
+	if (typeof value === 'number') return value;
+	if (typeof value === 'string') {
+		// Lấy số đầu tiên trong string (bỏ qua phần sau như "1rem 1.25rem")
+		const match = value.match(/^([\d.]+)/);
+		if (!match) return undefined;
+		
+		const num = parseFloat(match[1]);
+		if (isNaN(num)) return undefined;
+		
+		// Convert rem to px (1rem = 16px)
+		if (value.includes('rem')) {
+			return Math.round(num * 16);
+		}
+		// px hoặc số thuần
+		return Math.round(num);
+	}
+	return undefined;
+}
+
+// Helper: map shadow string to level
+function mapShadowToLevel(shadow: string | undefined): 'none' | 'sm' | 'md' | 'lg' {
+	if (!shadow || shadow === 'none') return 'none';
+	if (shadow.includes('20px') || shadow.includes('24px') || shadow.includes('16px')) return 'lg';
+	if (shadow.includes('8px') || shadow.includes('12px') || shadow.includes('6px')) return 'md';
+	return 'sm';
+}
+
+// Chuyển đổi preset config sang appearance settings format
+function mapPresetToSettings(presetConfig: Record<string, any>): Partial<AppearanceSettings> {
+	const result: Partial<AppearanceSettings> = {};
+
+	// Map background
+	if (presetConfig.background) {
+		const bg = presetConfig.background;
+		result.background = {
+			type: bg.type || (bg.gradient ? 'gradient' : 'solid'),
+			color: bg.color || '#f2f2f7',
+			gradient: bg.gradient || '',
+			imageUrl: bg.imageUrl || '',
+			effects: {
+				blur: bg.effects?.blur ?? 0,
+				dim: bg.effects?.dim ?? 0
+			}
+		};
+	}
+
+	// Map page layout
+	if (presetConfig.page?.layout) {
+		const layout = presetConfig.page.layout;
+		result.page = {
+			layout: {
+				maxWidth: layout.maxWidth ?? 520,
+				pagePadding: layout.pagePadding ?? 16,
+				blockGap: layout.blockGap ?? 12,
+				textAlign: layout.textAlign ?? 'center',
+				baseFontSize: layout.baseFontSize ?? 'M'
+			},
+			mode: presetConfig.page?.mode ?? 'light'
+		};
+	}
+
+	// Map colors từ semantic
+	if (presetConfig.semantic?.color) {
+		const sc = presetConfig.semantic.color;
+		result.colors = {
+			primary: sc.primary || '#007aff',
+			text: sc.text?.default || '#1c1c1e',
+			textSecondary: sc.text?.muted || '#8e8e93',
+			background: sc.surface?.page || '#f2f2f7',
+			cardBackground: sc.surface?.card || '#ffffff',
+			border: sc.border?.default || 'rgba(60, 60, 67, 0.1)'
+		};
+	}
+
+	// Map link styles từ recipes.linkItem
+	if (presetConfig.recipes?.linkItem?.base) {
+		const base = presetConfig.recipes.linkItem.base;
+		const linkDefaults = presetConfig.page?.defaults?.linkGroup || {};
+
+		result.links = {
+			style: 'filled',
+			borderRadius: parseSize(base.borderRadius) ?? 12,
+			shadow: mapShadowToLevel(base.shadow),
+			padding: parseSize(base.padding) ?? 16,
+			gap: parseSize(linkDefaults.gap) ?? 12,
+			textAlign: linkDefaults.textAlign || 'center',
+			fontSize: linkDefaults.fontSize || 'M',
+			textColor: ''
+		};
+
+		// Nếu có color trong linkItem, cập nhật colors.cardBackground
+		if (base.background && result.colors) {
+			result.colors.cardBackground = base.background;
+		}
+		if (base.color && result.colors) {
+			// Nếu link có màu text riêng, có thể dùng cho text chính
+			// Nhưng thường ta giữ nguyên từ semantic
+		}
+	}
+
+	// Map từ page.defaults.linkGroup (override nếu có)
+	if (presetConfig.page?.defaults?.linkGroup) {
+		const lg = presetConfig.page.defaults.linkGroup;
+		if (!result.links) result.links = { ...defaultAppearance.links };
+		if (lg.textAlign) result.links.textAlign = lg.textAlign;
+		if (lg.fontSize) result.links.fontSize = lg.fontSize;
+		if (lg.radius) result.links.borderRadius = parseSize(lg.radius) ?? result.links.borderRadius;
+		if (lg.shadow) result.links.shadow = lg.shadow as any;
+	}
+
+	return result;
+}
+
+// Tính toán settings cuối cùng: default → preset → customPatch
+function computeSettings(): AppearanceSettings {
+	// Đọc selectedPresetId trực tiếp để đảm bảo reactivity
+	const currentPresetId = selectedPresetId;
+	const currentPatch = customPatch;
+	
+	const presetConfig = getPresetConfigById(currentPresetId);
+	const presetSettings = mapPresetToSettings(presetConfig);
+	
+	// Merge: default → preset → customPatch
+	return deepMerge(
+		deepMerge(defaultAppearance, presetSettings),
+		currentPatch
+	) as AppearanceSettings;
+}
+
 export function getAppearance() {
 	return {
 		get loading() { return loading; },
@@ -68,7 +211,11 @@ export function getAppearance() {
 		get customPatch() { return customPatch; },
 		get dirty() { return dirty; },
 		get settings(): AppearanceSettings {
-			return deepMerge(defaultAppearance, customPatch) as AppearanceSettings;
+			return computeSettings();
+		},
+		// Lấy preset hiện tại
+		get selectedPreset(): ThemePreset | undefined {
+			return presets.find(p => p.id === selectedPresetId);
 		}
 	};
 }
@@ -109,13 +256,17 @@ export async function loadAppearance(pageId: number) {
 	}
 }
 
-// Only update local state, no API call
+// Chọn preset - reset customPatch để dùng preset mặc định
 export function selectPreset(presetId: number) {
+	if (selectedPresetId === presetId) return;
+	
 	selectedPresetId = presetId;
+	// Reset custom patch khi đổi preset để preview hiển thị đúng preset
+	customPatch = {};
 	checkDirty();
 }
 
-// Only update local state, no API call
+// Update setting - lưu vào customPatch
 export function updateSetting(path: string, value: any) {
 	const keys = path.split('.');
 	const newPatch = { ...customPatch };
@@ -145,11 +296,17 @@ function checkDirty() {
 	dirty = JSON.stringify(customPatch) !== JSON.stringify(originalPatch);
 }
 
-// Reset to original values
+// Reset to original values (undo changes since last save)
 export function resetAppearance() {
 	selectedPresetId = originalPresetId;
 	customPatch = { ...originalPatch };
 	dirty = false;
+}
+
+// Reset to pure preset defaults (clear all customizations)
+export function resetToPresetDefaults() {
+	customPatch = {};
+	checkDirty();
 }
 
 // Save all changes to server

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getAuth } from '$lib/stores/auth.svelte';
+	import { Construction } from 'lucide-svelte';
 
 	const auth = getAuth();
 </script>
@@ -68,7 +69,7 @@
 	</div>
 
 	<div class="coming-soon">
-		<span>🚧</span>
+		<Construction size={40} />
 		<p>Tính năng đang được phát triển</p>
 	</div>
 </div>
@@ -244,12 +245,10 @@
 		text-align: center;
 		padding: 2rem;
 		color: #656d76;
-	}
-
-	.coming-soon span {
-		font-size: 2rem;
-		display: block;
-		margin-bottom: 0.5rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	.coming-soon p {
