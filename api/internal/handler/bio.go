@@ -49,6 +49,56 @@ func (h *BioHandler) AddBlock(c *fiber.Ctx) error {
 	return util.Created(c, block)
 }
 
+// Update profile (display name and bio)
+type UpdateProfileRequest struct {
+	DisplayName string `json:"display_name"`
+	Bio         string `json:"bio"`
+}
+
+func (h *BioHandler) UpdateProfile(c *fiber.Ctx) error {
+	userID := middleware.GetUserID(c)
+
+	var req UpdateProfileRequest
+	if err := c.BodyParser(&req); err != nil {
+		return util.BadRequest(c, "invalid request body")
+	}
+
+	err := h.bioService.UpdateProfile(c.Context(), userID, req.DisplayName, req.Bio)
+	if err != nil {
+		return util.InternalError(c)
+	}
+
+	return util.OK(c, fiber.Map{"message": "Profile updated successfully"})
+}
+
+// Update social links
+type UpdateSocialLinksRequest struct {
+	Instagram string `json:"instagram"`
+	Facebook  string `json:"facebook"`
+	Twitter   string `json:"twitter"`
+	TikTok    string `json:"tiktok"`
+	YouTube   string `json:"youtube"`
+	LinkedIn  string `json:"linkedin"`
+	GitHub    string `json:"github"`
+	Website   string `json:"website"`
+}
+
+func (h *BioHandler) UpdateSocialLinks(c *fiber.Ctx) error {
+	userID := middleware.GetUserID(c)
+
+	var req UpdateSocialLinksRequest
+	if err := c.BodyParser(&req); err != nil {
+		return util.BadRequest(c, "invalid request body")
+	}
+
+	err := h.bioService.UpdateSocialLinks(c.Context(), userID, req)
+	if err != nil {
+		return util.InternalError(c)
+	}
+
+	return util.OK(c, fiber.Map{"message": "Social links updated successfully"})
+}
+
 // Update block
 type UpdateBlockRequest struct {
 	Content   any   `json:"content"`

@@ -5,11 +5,12 @@
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { getAppearance, loadAppearance, selectPreset, updateSetting, saveAppearance, resetAppearance, resetToPresetDefaults } from '$lib/stores/appearance.svelte';
 	import { bio } from '$lib/api/client';
-	import { Palette, Image, User, Link, Droplets, Type, Save, AlertTriangle, Sun, Moon, AlignLeft, AlignCenter, AlignRight, Settings, RefreshCw, Instagram, Music, Facebook, Twitter, Youtube, Linkedin, Github, Globe } from 'lucide-svelte';
+	import { Palette, Image, User, Link, Droplets, Type, Save, AlertTriangle, Sun, Moon, AlignLeft, AlignCenter, AlignRight, Settings, RefreshCw, Instagram, Music, Facebook, Twitter, Youtube, Linkedin, Github, Globe, X } from 'lucide-svelte';
 
 	const auth = getAuth();
 	const appearance = getAppearance();
 	let pageId = $state<number | null>(null);
+	let bioData = $state<any>(null);
 	let activeSection = $state<string>('theme');
 	let activeHeaderTab = $state<string>('avatar'); // Sub-tab for header settings
 	let showDebug = $state(false);
@@ -42,14 +43,45 @@
 			activeSection = urlTab;
 		}
 
-		const bioData = await bio.get();
-		if (bioData?.page) {
-			pageId = bioData.page.id;
-			await loadAppearance(bioData.page.id);
+		const data = await bio.get();
+		bioData = data;
+		if (data?.page) {
+			pageId = data.page.id;
+			await loadAppearance(data.page.id);
 		}
 	});
 
 	async function handleSave() { await saveAppearance(); }
+
+	// Handle cover image upload
+	async function handleCoverUpload(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		// Validate file size (max 2MB)
+		if (file.size > 2 * 1024 * 1024) {
+			alert('File quá lớn! Vui lòng chọn ảnh dưới 2MB.');
+			return;
+		}
+
+		// Validate file type
+		if (!file.type.startsWith('image/')) {
+			alert('Vui lòng chọn file ảnh!');
+			return;
+		}
+
+		// TODO: Upload to server and get URL
+		// For now, use local preview
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			const dataUrl = e.target?.result as string;
+			updateSetting('header.cover.imageUrl', dataUrl);
+			// TODO: Upload to server and save asset ID
+			// updateSetting('header.cover.imageAssetId', assetId);
+		};
+		reader.readAsDataURL(file);
+	}
 
 	// Apply color scheme
 	function applyColorScheme(scheme: typeof colorSchemes[0]) {
@@ -203,9 +235,8 @@
 		const style = appearance.settings.header.style;
 		const baseSize = getAvatarSize();
 		const radius = getAvatarRadius();
-		// Explicitly read these to ensure reactivity
 		const borderColor = appearance.settings.header.avatarBorderColor || 'rgba(0,0,0,0.15)';
-		const borderWidth = appearance.settings.header.avatarBorderWidth ?? 3;
+		const borderWidth = appearance.settings.header.avatarBorderWidth || 3;
 		
 		let size = baseSize;
 		if (style === 'minimal') size = Math.round(baseSize * 1.2); // Larger for minimal
@@ -279,6 +310,24 @@
 		const textAlign = style === 'minimal' ? 'center' : bioSettings.bioAlign;
 		
 		return `color: ${textColor}; font-size: ${fontSize}; max-width: ${maxWidth}; text-align: ${textAlign}; align-self: ${alignSelf}; line-height: 1.5;`;
+	}
+
+	function getCoverStyle(): string {
+		const cover = appearance.settings.header.cover;
+		if (cover.type === 'image' && cover.imageUrl) {
+			return `background-image: url('${cover.imageUrl}'); background-size: cover; background-position: center;`;
+		}
+		return `background: ${cover.color};`;
+	}
+
+	function getSocialIconStyle(): string {
+		const iconColor = appearance.settings.header.socialIconsColor || 'var(--color-text-secondary)';
+		const showBg = appearance.settings.header.socialIconsBg ?? true;
+		
+		if (showBg) {
+			return `background: rgba(0,0,0,0.05); color: ${iconColor};`;
+		}
+		return `background: transparent; color: ${iconColor};`;
 	}
 </script>
 
@@ -543,10 +592,12 @@
 									<Type size={16} />
 									<span>Bio</span>
 								</button>
-								<button class="sub-tab" class:active={activeHeaderTab === 'cover'} onclick={() => activeHeaderTab = 'cover'}>
-									<Image size={16} />
-									<span>Cover</span>
-								</button>
+								{#if appearance.settings.header.style === 'classic'}
+									<button class="sub-tab" class:active={activeHeaderTab === 'cover'} onclick={() => activeHeaderTab = 'cover'}>
+										<Image size={16} />
+										<span>Cover</span>
+									</button>
+								{/if}
 								<button class="sub-tab" class:active={activeHeaderTab === 'social'} onclick={() => activeHeaderTab = 'social'}>
 									<Instagram size={16} />
 									<span>Social</span>
@@ -586,34 +637,6 @@
 											{#each avatarShapes as s}
 												<button class="option-btn small" class:active={appearance.settings.header.avatarShape === s.value} onclick={() => updateSetting('header.avatarShape', s.value)}>{s.label}</button>
 											{/each}
-										</div>
-									</div>
-									
-									<!-- Name Color Picker -->
-									<div class="setting-row" style="margin-top: var(--space-4)">
-										<span class="setting-label">Màu tên hiển thị</span>
-									</div>
-									<div class="color-setting-group" style="margin-top: var(--space-2)">
-										<div class="color-presets-row">
-											<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
-												<div class="gradient-icon"></div>
-											</button>
-											<input type="color" class="hidden-native-picker" value={appearance.settings.header.nameColor || appearance.settings.colors.text} onchange={(e) => updateSetting('header.nameColor', e.currentTarget.value)} />
-											
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('header.nameColor', '#000000')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('header.nameColor', '#ffffff')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => updateSetting('header.nameColor', '#1c1c1e')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.nameColor', '#8e8e93')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('header.nameColor', '#ff3b30')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#ff9500'} style="background:#ff9500" title="#ff9500" onclick={() => updateSetting('header.nameColor', '#ff9500')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#007aff'} style="background:#007aff" title="#007aff" onclick={() => updateSetting('header.nameColor', '#007aff')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('header.nameColor', '#5856d6')}></button>
-											
-											{#if appearance.settings.header.nameColor}
-												<button class="color-preset-circle reset-circle" title="Reset về mặc định" onclick={() => updateSetting('header.nameColor', '')}>
-													<RefreshCw size={18} />
-												</button>
-											{/if}
 										</div>
 									</div>
 									
@@ -673,6 +696,35 @@
 										<span>Hiển thị Bio</span>
 										<button class="toggle" class:active={appearance.settings.header.showBio} aria-label="Toggle" onclick={() => updateSetting('header.showBio', !appearance.settings.header.showBio)}></button>
 									</div>
+									
+									<!-- Name Color Picker -->
+									<div class="setting-row" style="margin-top: var(--space-4)">
+										<span class="setting-label">Màu tên hiển thị</span>
+									</div>
+									<div class="color-setting-group" style="margin-top: var(--space-2)">
+										<div class="color-presets-row">
+											<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
+												<div class="gradient-icon"></div>
+											</button>
+											<input type="color" class="hidden-native-picker" value={appearance.settings.header.nameColor || appearance.settings.colors.text} onchange={(e) => updateSetting('header.nameColor', e.currentTarget.value)} />
+											
+											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('header.nameColor', '#000000')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('header.nameColor', '#ffffff')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => updateSetting('header.nameColor', '#1c1c1e')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.nameColor', '#8e8e93')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('header.nameColor', '#ff3b30')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#ff9500'} style="background:#ff9500" title="#ff9500" onclick={() => updateSetting('header.nameColor', '#ff9500')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#007aff'} style="background:#007aff" title="#007aff" onclick={() => updateSetting('header.nameColor', '#007aff')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('header.nameColor', '#5856d6')}></button>
+											
+											{#if appearance.settings.header.nameColor}
+												<button class="color-preset-circle reset-circle" title="Reset về mặc định" onclick={() => updateSetting('header.nameColor', '')}>
+													<RefreshCw size={18} />
+												</button>
+											{/if}
+										</div>
+									</div>
+									
 									{#if appearance.settings.header.showBio}
 										<div class="setting-row">
 											<span class="setting-label">Cỡ chữ Bio</span>
@@ -699,51 +751,107 @@
 											<span class="setting-label">Màu Bio</span>
 										</div>
 										<div class="color-setting-group" style="margin-top: var(--space-2)">
-											<div class="color-setting-header">
-												<span class="setting-label" style="font-size: var(--text-sm); color: var(--color-text-secondary)">Chọn màu cho bio text</span>
-												<div class="color-value-display">
-													<input type="color" class="color-picker-trigger" value={appearance.settings.header.bioColor || appearance.settings.colors.textSecondary} onchange={(e) => updateSetting('header.bioColor', e.currentTarget.value)} title="Pick custom color"/>
-													<input type="text" class="color-hex-input" value={appearance.settings.header.bioColor || appearance.settings.colors.textSecondary} onchange={(e) => updateSetting('header.bioColor', e.currentTarget.value)} placeholder="Auto"/>
-													<button class="btn-icon-reset" onclick={() => updateSetting('header.bioColor', '')} title="Reset về mặc định"><RefreshCw size={14} /></button>
-												</div>
-											</div>
-											<div class="color-presets-inline">
-												{#each ['#636366', '#8e8e93', '#aeaeb2', '#c7c7cc', '#1c1c1e', '#3a3a3c', '#48484a'] as c}
-													<button 
-														class="color-preset-btn" 
-														class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === c} 
-														style="background:{c}" 
-														title={c} 
-														onclick={() => updateSetting('header.bioColor', c)}
-													></button>
-												{/each}
+											<div class="color-presets-row">
+												<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
+													<div class="gradient-icon"></div>
+												</button>
+												<input type="color" class="hidden-native-picker" value={appearance.settings.header.bioColor || appearance.settings.colors.textSecondary} onchange={(e) => updateSetting('header.bioColor', e.currentTarget.value)} />
+												
+												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#636366'} style="background:#636366" title="#636366" onclick={() => updateSetting('header.bioColor', '#636366')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.bioColor', '#8e8e93')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#aeaeb2'} style="background:#aeaeb2" title="#aeaeb2" onclick={() => updateSetting('header.bioColor', '#aeaeb2')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#c7c7cc'} style="background:#c7c7cc" title="#c7c7cc" onclick={() => updateSetting('header.bioColor', '#c7c7cc')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => updateSetting('header.bioColor', '#1c1c1e')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#3a3a3c'} style="background:#3a3a3c" title="#3a3a3c" onclick={() => updateSetting('header.bioColor', '#3a3a3c')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#48484a'} style="background:#48484a" title="#48484a" onclick={() => updateSetting('header.bioColor', '#48484a')}></button>
+												
+												{#if appearance.settings.header.bioColor}
+													<button class="color-preset-circle reset-circle" title="Reset về mặc định" onclick={() => updateSetting('header.bioColor', '')}>
+														<RefreshCw size={18} />
+													</button>
+												{/if}
 											</div>
 										</div>
 									{/if}
 
 								{:else if activeHeaderTab === 'cover'}
 									<!-- Cover Settings -->
-									<p class="form-hint">Cài đặt cover chỉ áp dụng cho kiểu header "Classic"</p>
-									<div class="setting-row" style="margin-top: var(--space-3)">
-										<span class="setting-label">Màu Cover</span>
-									</div>
-									<div class="color-setting-group" style="margin-top: var(--space-2)">
-										<div class="color-presets-row">
-											<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
-												<div class="gradient-icon"></div>
+									{#if appearance.settings.header.style !== 'classic'}
+										<div class="info-box">
+											<AlertTriangle size={16} />
+											<span>Cover chỉ hiển thị khi Header Style là "Classic"</span>
+										</div>
+									{/if}
+									
+									<!-- Cover Type -->
+									<div class="setting-row">
+										<span class="setting-label">Loại Cover</span>
+										<div class="button-group-inline">
+											<button 
+												class="btn-option" 
+												class:active={appearance.settings.header.cover.type === 'color'}
+												onclick={() => updateSetting('header.cover.type', 'color')}
+											>
+												<Droplets size={14} />
+												<span>Màu</span>
 											</button>
-											<input type="color" class="hidden-native-picker" value={appearance.settings.colors.primary} onchange={(e) => updateSetting('colors.primary', e.currentTarget.value)} />
-											
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('colors.primary', '#000000')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('colors.primary', '#ffffff')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#667eea'} style="background:#667eea" title="#667eea" onclick={() => updateSetting('colors.primary', '#667eea')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('colors.primary', '#5856d6')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('colors.primary', '#ff3b30')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ff9500'} style="background:#ff9500" title="#ff9500" onclick={() => updateSetting('colors.primary', '#ff9500')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#34c759'} style="background:#34c759" title="#34c759" onclick={() => updateSetting('colors.primary', '#34c759')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#00c7be'} style="background:#00c7be" title="#00c7be" onclick={() => updateSetting('colors.primary', '#00c7be')}></button>
+											<button 
+												class="btn-option" 
+												class:active={appearance.settings.header.cover.type === 'image'}
+												onclick={() => updateSetting('header.cover.type', 'image')}
+											>
+												<Image size={14} />
+												<span>Ảnh</span>
+											</button>
 										</div>
 									</div>
+
+									{#if appearance.settings.header.cover.type === 'color'}
+										<!-- Color Picker -->
+										<div class="setting-row">
+											<span class="setting-label">Màu Cover</span>
+										</div>
+										<div class="color-setting-group">
+											<div class="color-presets-row">
+												<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
+													<div class="gradient-icon"></div>
+												</button>
+												<input type="color" class="hidden-native-picker" value={appearance.settings.header.cover.color} onchange={(e) => updateSetting('header.cover.color', e.currentTarget.value)} />
+												
+												{#each ['#c2185b', '#d32f2f', '#7b1fa2', '#512da8', '#303f9f', '#1976d2', '#0288d1', '#0097a7', '#00796b', '#388e3c', '#689f38', '#afb42b', '#fbc02d', '#ffa000', '#f57c00', '#e64a19', '#5d4037', '#616161', '#455a64', '#000000'] as color}
+													<button 
+														class="color-preset-circle" 
+														class:active={appearance.settings.header.cover.color === color}
+														style="background:{color}{color === '#000000' ? '' : ''}; {color === '#ffffff' ? 'border: 2px solid #e5e5ea' : ''}" 
+														title={color}
+														onclick={() => updateSetting('header.cover.color', color)}
+													></button>
+												{/each}
+											</div>
+										</div>
+									{:else}
+										<!-- Image Upload -->
+										<div class="setting-row">
+											<span class="setting-label">Ảnh Cover</span>
+										</div>
+										<div class="upload-area">
+											{#if appearance.settings.header.cover.imageUrl}
+												<div class="uploaded-image">
+													<img src={appearance.settings.header.cover.imageUrl} alt="Cover" />
+													<button class="remove-image" onclick={() => { updateSetting('header.cover.imageUrl', null); updateSetting('header.cover.imageAssetId', null); }}>
+														<X size={16} />
+													</button>
+												</div>
+											{:else}
+												<label class="upload-label">
+													<input type="file" accept="image/*" onchange={handleCoverUpload} style="display: none;" />
+													<Image size={24} />
+													<span>Click để upload ảnh cover</span>
+													<span class="upload-hint">Khuyến nghị: 1200x400px, tối đa 2MB</span>
+												</label>
+											{/if}
+										</div>
+									{/if}
 
 								{:else if activeHeaderTab === 'social'}
 									<!-- Social Icons Settings -->
@@ -762,6 +870,40 @@
 											<button class="social-icon-btn"><span class="icon"><Linkedin size={18} /></span><span class="label">LinkedIn</span></button>
 											<button class="social-icon-btn"><span class="icon"><Github size={18} /></span><span class="label">GitHub</span></button>
 											<button class="social-icon-btn"><span class="icon"><Globe size={18} /></span><span class="label">Website</span></button>
+										</div>
+										
+										<!-- Social Icons Style Settings -->
+										<div class="toggle-row" style="margin-top: var(--space-4)">
+											<span>Hiển thị Background</span>
+											<button class="toggle" class:active={appearance.settings.header.socialIconsBg} aria-label="Toggle" onclick={() => updateSetting('header.socialIconsBg', !appearance.settings.header.socialIconsBg)}></button>
+										</div>
+										
+										<!-- Social Icons Color Picker -->
+										<div class="setting-row" style="margin-top: var(--space-4)">
+											<span class="setting-label">Màu Icon Social</span>
+										</div>
+										<div class="color-setting-group" style="margin-top: var(--space-2)">
+											<div class="color-presets-row">
+												<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
+													<div class="gradient-icon"></div>
+												</button>
+												<input type="color" class="hidden-native-picker" value={appearance.settings.header.socialIconsColor || '#8e8e93'} onchange={(e) => updateSetting('header.socialIconsColor', e.currentTarget.value)} />
+												
+												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('header.socialIconsColor', '#000000')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('header.socialIconsColor', '#ffffff')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.socialIconsColor', '#8e8e93')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('header.socialIconsColor', '#ff3b30')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#ff9500'} style="background:#ff9500" title="#ff9500" onclick={() => updateSetting('header.socialIconsColor', '#ff9500')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#007aff'} style="background:#007aff" title="#007aff" onclick={() => updateSetting('header.socialIconsColor', '#007aff')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('header.socialIconsColor', '#5856d6')}></button>
+												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#34c759'} style="background:#34c759" title="#34c759" onclick={() => updateSetting('header.socialIconsColor', '#34c759')}></button>
+												
+												{#if appearance.settings.header.socialIconsColor}
+													<button class="color-preset-circle reset-circle" title="Reset về mặc định" onclick={() => updateSetting('header.socialIconsColor', '')}>
+														<RefreshCw size={18} />
+													</button>
+												{/if}
+											</div>
 										</div>
 									{/if}
 								{/if}
@@ -944,38 +1086,64 @@
 						
 						{#if appearance.settings.header.style === 'classic'}
 							<!-- Classic: Cover + Avatar Overlap Center -->
-							<div class="preview-cover-classic" style="background: {appearance.settings.colors.primary};"></div>
-							{#key `${appearance.settings.header.avatarBorderColor}-${appearance.settings.header.avatarBorderWidth}-${appearance.settings.header.avatarSize}-${appearance.settings.header.avatarShape}`}
-								<div class="preview-avatar-classic" style="{getHeaderAvatarStyle()}">{auth.user?.email?.charAt(0).toUpperCase() || 'U'}</div>
-							{/key}
+							<div class="preview-cover-classic" style="{getCoverStyle()}"></div>
+							<div class="preview-avatar-classic" style="{getHeaderAvatarStyle()}">{auth.user?.email?.charAt(0).toUpperCase() || 'U'}</div>
 							<div class="preview-header-classic" style="{getHeaderContainerStyle()}">
-								<div class="preview-name" style="{getHeaderNameStyle()}">@{auth.user?.username || 'username'}</div>
+								<div class="preview-name" style="{getHeaderNameStyle()}">
+									{#if auth.user?.display_name}
+										{auth.user.display_name}
+									{:else}
+										@{auth.user?.username || 'username'}
+									{/if}
+								</div>
 								{#if appearance.settings.header.showSocials}
 									<div class="preview-social-icons">
-										<span class="preview-social-icon"><Instagram size={16} /></span>
-										<span class="preview-social-icon"><Music size={16} /></span>
+										{#key `${appearance.settings.header.socialIconsColor}-${appearance.settings.header.socialIconsBg}`}
+											<span class="preview-social-icon" style="{getSocialIconStyle()}"><Instagram size={16} /></span>
+											<span class="preview-social-icon" style="{getSocialIconStyle()}"><Music size={16} /></span>
+										{/key}
 									</div>
 								{/if}
 								{#if appearance.settings.header.showBio}
-									<div class="preview-bio" style="{getHeaderBioStyle()}">Your bio here</div>
+									<div class="preview-bio" style="{getHeaderBioStyle()}">
+										{#if bioData?.page?.settings && typeof bioData.page.settings === 'object'}
+											{@const settings = bioData.page.settings as any}
+											{settings.bio || 'Your bio here'}
+										{:else}
+											Your bio here
+										{/if}
+									</div>
 								{/if}
 							</div>
 							
 						{:else}
 							<!-- Minimal: No Cover, Vertical Center Layout -->
 							<div class="preview-header-minimal" style="padding: {appearance.settings.page.layout.pagePadding}px {appearance.settings.page.layout.pagePadding}px 0;">
-								{#key `${appearance.settings.header.avatarSize}-${appearance.settings.header.avatarShape}`}
-									<div class="preview-avatar-minimal" style="{getHeaderAvatarStyle()}">{auth.user?.email?.charAt(0).toUpperCase() || 'U'}</div>
-								{/key}
-								<div class="preview-name" style="{getHeaderNameStyle()}">@{auth.user?.username || 'username'}</div>
+								<div class="preview-avatar-minimal" style="{getHeaderAvatarStyle()}">{auth.user?.email?.charAt(0).toUpperCase() || 'U'}</div>
+								<div class="preview-name" style="{getHeaderNameStyle()}">
+									{#if auth.user?.display_name}
+										{auth.user.display_name}
+									{:else}
+										@{auth.user?.username || 'username'}
+									{/if}
+								</div>
 								{#if appearance.settings.header.showSocials}
 									<div class="preview-social-icons">
-										<span class="preview-social-icon"><Instagram size={16} /></span>
-										<span class="preview-social-icon"><Music size={16} /></span>
+										{#key `${appearance.settings.header.socialIconsColor}-${appearance.settings.header.socialIconsBg}`}
+											<span class="preview-social-icon" style="{getSocialIconStyle()}"><Instagram size={16} /></span>
+											<span class="preview-social-icon" style="{getSocialIconStyle()}"><Music size={16} /></span>
+										{/key}
 									</div>
 								{/if}
 								{#if appearance.settings.header.showBio}
-									<div class="preview-bio" style="{getHeaderBioStyle()}">Your bio here</div>
+									<div class="preview-bio" style="{getHeaderBioStyle()}">
+										{#if bioData?.page?.settings && typeof bioData.page.settings === 'object'}
+											{@const settings = bioData.page.settings as any}
+											{settings.bio || 'Your bio here'}
+										{:else}
+											Your bio here
+										{/if}
+									</div>
 								{/if}
 							</div>
 						{/if}
@@ -1605,6 +1773,114 @@
 		height: 0;
 		opacity: 0;
 		pointer-events: none;
+	}
+
+	/* Info box */
+	.info-box {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3);
+		background: rgba(255, 149, 0, 0.1);
+		border: 1px solid rgba(255, 149, 0, 0.3);
+		border-radius: var(--radius-md);
+		color: #f59e0b;
+		font-size: var(--text-sm);
+		margin-bottom: var(--space-4);
+	}
+
+	/* Button group inline */
+	.button-group-inline {
+		display: flex;
+		gap: var(--space-2);
+	}
+
+	.btn-option {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-2) var(--space-3);
+		background: var(--color-bg);
+		border: 1px solid var(--color-separator);
+		border-radius: var(--radius-md);
+		font-size: var(--text-sm);
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.btn-option:hover {
+		background: var(--color-bg-secondary);
+		border-color: var(--color-primary);
+	}
+
+	.btn-option.active {
+		background: var(--color-primary);
+		color: white;
+		border-color: var(--color-primary);
+	}
+
+	/* Upload area */
+	.upload-area {
+		margin-top: var(--space-2);
+	}
+
+	.upload-label {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-2);
+		padding: var(--space-6);
+		background: var(--color-bg);
+		border: 2px dashed var(--color-separator);
+		border-radius: var(--radius-lg);
+		cursor: pointer;
+		transition: all 0.2s;
+		color: var(--color-text-secondary);
+	}
+
+	.upload-label:hover {
+		border-color: var(--color-primary);
+		background: var(--color-bg-secondary);
+	}
+
+	.upload-hint {
+		font-size: var(--text-xs);
+		color: var(--color-text-tertiary);
+	}
+
+	.uploaded-image {
+		position: relative;
+		border-radius: var(--radius-lg);
+		overflow: hidden;
+		aspect-ratio: 3 / 1;
+	}
+
+	.uploaded-image img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.remove-image {
+		position: absolute;
+		top: var(--space-2);
+		right: var(--space-2);
+		width: 32px;
+		height: 32px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(0, 0, 0, 0.6);
+		color: white;
+		border-radius: 50%;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.remove-image:hover {
+		background: rgba(255, 59, 48, 0.9);
 	}
 </style>
 

@@ -8,7 +8,14 @@
 			title?: string;
 			locale: string;
 			mode: string;
-			settings: object;
+			settings: {
+				bio?: string;
+				social?: Record<string, string>;
+			};
+		};
+		user?: {
+			username?: string;
+			display_name?: string;
 		};
 		theme: object;
 		blocks: CompiledBlock[];
@@ -33,11 +40,16 @@
 
 	onMount(async () => {
 		const username = $page.params.username;
+		console.log('[Public Page] Loading for username:', username);
 		try {
 			const res = await fetch(`http://localhost:8080/r?path=/${username}`);
 			if (!res.ok) throw new Error('Page not found');
 			data = await res.json();
+			console.log('[Public Page] Loaded data:', data);
+			console.log('[Public Page] User info:', data?.user);
+			console.log('[Public Page] Page settings:', data?.page?.settings);
 		} catch (err) {
+			console.error('[Public Page] Error:', err);
 			error = err instanceof Error ? err.message : 'Failed to load';
 		} finally {
 			loading = false;
@@ -46,7 +58,9 @@
 </script>
 
 <svelte:head>
-	{#if data?.page.title}
+	{#if data?.user?.display_name}
+		<title>{data.user.display_name} - Bio</title>
+	{:else if data?.page.title}
 		<title>{data.page.title}</title>
 	{/if}
 </svelte:head>
@@ -58,7 +72,20 @@
 		<p class="error">{error}</p>
 	{:else if data}
 		<div class="page-content">
-			{#if data.page.title}
+			<!-- User Profile Header -->
+			{#if data.user?.display_name || data.page.settings?.bio}
+				<div class="profile-header">
+					{#if data.user?.display_name}
+						<h1 class="display-name">{data.user.display_name}</h1>
+					{/if}
+					{#if data.user?.username}
+						<p class="username">@{data.user.username}</p>
+					{/if}
+					{#if data.page.settings?.bio}
+						<p class="bio">{data.page.settings.bio}</p>
+					{/if}
+				</div>
+			{:else if data.page.title}
 				<h1>{data.page.title}</h1>
 			{/if}
 
@@ -108,6 +135,34 @@
 	.page-content {
 		width: 100%;
 		max-width: 480px;
+	}
+
+	.profile-header {
+		text-align: center;
+		margin-bottom: 2rem;
+		padding-bottom: 1.5rem;
+		border-bottom: 1px solid #e5e7eb;
+	}
+
+	.display-name {
+		font-size: 1.5rem;
+		font-weight: 600;
+		margin-bottom: 0.25rem;
+		color: #111827;
+	}
+
+	.username {
+		font-size: 0.875rem;
+		color: #6b7280;
+		margin-bottom: 0.75rem;
+	}
+
+	.bio {
+		font-size: 0.9375rem;
+		color: #374151;
+		line-height: 1.5;
+		max-width: 400px;
+		margin: 0 auto;
 	}
 
 	h1 {

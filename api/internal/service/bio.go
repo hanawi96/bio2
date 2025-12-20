@@ -19,13 +19,15 @@ type BioService struct {
 	bioRepo   *repo.BioRepo
 	pageRepo  *repo.PageRepo
 	blockRepo *repo.BlockRepo
+	userRepo  *repo.UserRepo
 }
 
-func NewBioService(bioRepo *repo.BioRepo, pageRepo *repo.PageRepo, blockRepo *repo.BlockRepo) *BioService {
+func NewBioService(bioRepo *repo.BioRepo, pageRepo *repo.PageRepo, blockRepo *repo.BlockRepo, userRepo *repo.UserRepo) *BioService {
 	return &BioService{
 		bioRepo:   bioRepo,
 		pageRepo:  pageRepo,
 		blockRepo: blockRepo,
+		userRepo:  userRepo,
 	}
 }
 
@@ -275,4 +277,71 @@ func (s *BioService) ReorderBlocks(ctx context.Context, userID int64, blockIDs [
 		}
 	}
 	return nil
+}
+
+// UpdateProfile updates user display name and bio in page settings
+func (s *BioService) UpdateProfile(ctx context.Context, userID int64, displayName, bio string) error {
+	// Update display name in users table
+	if err := s.userRepo.UpdateDisplayName(ctx, userID, displayName); err != nil {
+		return err
+	}
+
+	// Update bio in page settings
+	page, err := s.bioRepo.GetOrCreatePage(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// Parse current settings
+	var settings map[string]interface{}
+	if len(page.Settings) > 0 {
+		if err := json.Unmarshal(page.Settings, &settings); err != nil {
+			settings = make(map[string]interface{})
+		}
+	} else {
+		settings = make(map[string]interface{})
+	}
+
+	// Update bio
+	settings["bio"] = bio
+
+	// Marshal back to JSON
+	newSettings, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+
+	// Update page
+	return s.pageRepo.UpdateSettings(ctx, page.ID, newSettings)
+}
+
+// UpdateSocialLinks updates social media links in page settings
+func (s *BioService) UpdateSocialLinks(ctx context.Context, userID int64, req interface{}) error {
+	// Get page
+	page, err := s.bioRepo.GetOrCreatePage(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// Parse current settings
+	var settings map[string]interface{}
+	if len(page.Settings) > 0 {
+		if err := json.Unmarshal(page.Settings, &settings); err != nil {
+			settings = make(map[string]interface{})
+		}
+	} else {
+		settings = make(map[string]interface{})
+	}
+
+	// Update social links
+	settings["social"] = req
+
+	// Marshal back to JSON
+	newSettings, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+
+	// Update page
+	return s.pageRepo.UpdateSettings(ctx, page.ID, newSettings)
 }

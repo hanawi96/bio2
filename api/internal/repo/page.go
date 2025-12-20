@@ -116,3 +116,10 @@ func (r *PageRepo) GetPublishCache(ctx context.Context, pageID int64) (*model.Pa
 	}
 	return &cache, nil
 }
+
+// UpdateSettings updates page settings
+func (r *PageRepo) UpdateSettings(ctx context.Context, pageID int64, settings []byte) error {
+	query := `UPDATE bio_pages SET settings = $1, updated_at = NOW() WHERE id = $2`
+	_, err := r.db.Exec(ctx, query, settings, pageID)
+	return err
+}

@@ -38,8 +38,8 @@ func main() {
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	pageService := service.NewPageService(pageRepo, blockRepo)
 	themeService := service.NewThemeService(themeRepo)
-	compilerService := service.NewCompilerService(pageRepo, blockRepo, themeRepo)
-	bioService := service.NewBioService(bioRepo, pageRepo, blockRepo)
+	compilerService := service.NewCompilerService(pageRepo, blockRepo, themeRepo, userRepo)
+	bioService := service.NewBioService(bioRepo, pageRepo, blockRepo, userRepo)
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -89,6 +89,8 @@ func main() {
 	protected.Post("/bio/links", bioHandler.AddLink)
 	protected.Put("/bio/links/:id", bioHandler.UpdateLink)
 	protected.Delete("/bio/links/:id", bioHandler.DeleteLink)
+	protected.Put("/bio/profile", bioHandler.UpdateProfile)
+	protected.Put("/bio/social", bioHandler.UpdateSocialLinks)
 
 	// Pages
 	protected.Get("/pages", pageHandler.List)

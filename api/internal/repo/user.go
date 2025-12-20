@@ -90,3 +90,10 @@ func (r *UserRepo) UsernameExists(ctx context.Context, username string) (bool, e
 	`, username).Scan(&exists)
 	return exists, err
 }
+
+func (r *UserRepo) UpdateDisplayName(ctx context.Context, userID int64, displayName string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE users SET display_name = $2, updated_at = NOW() WHERE id = $1
+	`, userID, displayName)
+	return err
+}

@@ -40,7 +40,13 @@ const defaultAppearance = {
 		avatarShape: 'circle' as 'circle' | 'rounded' | 'square',
 		bioSize: 'M' as 'S' | 'M' | 'L' | 'XL',
 		bioAlign: 'center' as 'left' | 'center' | 'right',
-		bioColor: '' as string // empty = use textSecondary from colors
+		bioColor: '' as string, // empty = use textSecondary from colors
+		cover: {
+			type: 'color' as 'color' | 'image',
+			color: '#c2185b',
+			imageUrl: null as string | null,
+			imageAssetId: null as number | null
+		}
 	},
 	links: {
 		style: 'filled' as 'filled' | 'outline' | 'soft' | 'ghost',

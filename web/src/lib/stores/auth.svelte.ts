@@ -44,3 +44,11 @@ export async function logout() {
 	await auth.logout();
 	user = null;
 }
+
+export async function refreshUser() {
+	try {
+		user = await auth.me();
+	} catch (err) {
+		console.error('Failed to refresh user:', err);
+	}
+}

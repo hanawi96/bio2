@@ -117,7 +117,19 @@ export const bio = {
 		}),
 
 	deleteLink: (id: number) =>
-		request(`/api/bio/links/${id}`, { method: 'DELETE' })
+		request(`/api/bio/links/${id}`, { method: 'DELETE' }),
+
+	updateProfile: (displayName: string, bio: string) =>
+		request('/api/bio/profile', {
+			method: 'PUT',
+			body: JSON.stringify({ display_name: displayName, bio })
+		}),
+
+	updateSocial: (social: SocialLinks) =>
+		request('/api/bio/social', {
+			method: 'PUT',
+			body: JSON.stringify(social)
+		})
 };
 
 // Pages
@@ -230,6 +242,17 @@ export interface BlockWithGroup extends Block {
 export interface BioData {
 	page: Page;
 	blocks: BlockWithGroup[];
+}
+
+export interface SocialLinks {
+	instagram?: string;
+	facebook?: string;
+	twitter?: string;
+	tiktok?: string;
+	youtube?: string;
+	linkedin?: string;
+	github?: string;
+	website?: string;
 }
 
 export interface DraftData {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { bio, type BioData, type BlockWithGroup, type Link } from '$lib/api/client';
-	import { getAuth } from '$lib/stores/auth.svelte';
+	import { bio, pages, type BioData, type BlockWithGroup, type Link } from '$lib/api/client';
+	import { getAuth, refreshUser } from '$lib/stores/auth.svelte';
 	import { Eye, Link as LinkIcon, FileText, Image, ShoppingBag, Minus, GripVertical, Eye as EyeIcon, EyeOff, Trash2, Pencil, X, Plus } from 'lucide-svelte';
 
 	const auth = getAuth();
@@ -23,16 +23,31 @@
 
 	onMount(async () => {
 		await loadBio();
+		await refreshUser();
 	});
 
 	async function loadBio() {
 		loading = true;
 		try {
 			bioData = await bio.get();
+			console.log('[Bio Page] Loaded bio data:', bioData);
+			console.log('[Bio Page] Page settings:', bioData?.page?.settings);
 		} catch (err) {
-			console.error(err);
+			console.error('[Bio Page] Load error:', err);
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function autoPublish() {
+		if (bioData?.page?.id) {
+			try {
+				console.log('[Bio Page] Auto-publishing page:', bioData.page.id);
+				await pages.publish(bioData.page.id);
+				console.log('[Bio Page] Published successfully');
+			} catch (err) {
+				console.warn('[Bio Page] Auto-publish failed:', err);
+			}
 		}
 	}
 
@@ -46,6 +61,7 @@
 		try {
 			await bio.addBlock('link_group');
 			await loadBio();
+			await autoPublish();
 		} catch (err) {
 			console.error(err);
 		} finally {
@@ -58,6 +74,7 @@
 		try {
 			await bio.deleteBlock(blockId);
 			await loadBio();
+			await autoPublish();
 		} catch (err) {
 			console.error(err);
 		}
@@ -67,6 +84,7 @@
 		try {
 			await bio.updateBlock(block.id, { is_visible: !block.is_visible });
 			await loadBio();
+			await autoPublish();
 		} catch (err) {
 			console.error(err);
 		}
@@ -92,6 +110,7 @@
 		try {
 			await bio.addLink(addingToGroupId, newTitle.trim(), newUrl.trim());
 			await loadBio();
+			await autoPublish();
 			cancelAddLink();
 		} catch (err) {
 			console.error(err);
@@ -122,6 +141,7 @@
 				url: editUrl.trim()
 			});
 			await loadBio();
+			await autoPublish();
 			cancelEditLink();
 		} catch (err) {
 			console.error(err);
@@ -135,6 +155,7 @@
 		try {
 			await bio.deleteLink(linkId);
 			await loadBio();
+			await autoPublish();
 		} catch (err) {
 			console.error(err);
 		}
@@ -144,6 +165,7 @@
 		try {
 			await bio.updateLink(link.id, { is_active: !link.is_active });
 			await loadBio();
+			await autoPublish();
 		} catch (err) {
 			console.error(err);
 		}
@@ -193,7 +215,16 @@
 					{:else}
 						<div class="screen-header">
 							<div class="avatar"></div>
+							{#if auth.user?.display_name}
+								<div class="display-name">{auth.user.display_name}</div>
+							{/if}
 							<div class="username">@{auth.user?.username}</div>
+							{#if bioData?.page?.settings && typeof bioData.page.settings === 'object'}
+								{@const settings = bioData.page.settings as any}
+								{#if settings.bio}
+									<div class="bio-text">{settings.bio}</div>
+								{/if}
+							{/if}
 						</div>
 						<div class="screen-links">
 							{#each allLinks as link}
@@ -446,6 +477,8 @@
 	.screen-header {
 		text-align: center;
 		margin-bottom: var(--space-5);
+		padding-bottom: var(--space-4);
+		border-bottom: 1px solid #f0f0f0;
 	}
 
 	.avatar {
@@ -456,10 +489,25 @@
 		margin: 0 auto var(--space-3);
 	}
 
+	.display-name {
+		font-size: 1.125rem;
+		font-weight: 600;
+		color: #1c1c1e;
+		margin-bottom: var(--space-1);
+	}
+
 	.username {
 		font-size: var(--text-sm);
-		font-weight: 600;
-		color: var(--color-text);
+		font-weight: 500;
+		color: #8e8e93;
+		margin-bottom: var(--space-2);
+	}
+
+	.bio-text {
+		font-size: 0.8125rem;
+		color: #3a3a3c;
+		line-height: 1.4;
+		padding: 0 var(--space-3);
 	}
 
 	.screen-links {

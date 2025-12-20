@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"linkbio/internal/repo"
 )
@@ -11,18 +12,21 @@ type CompilerService struct {
 	pageRepo  *repo.PageRepo
 	blockRepo *repo.BlockRepo
 	themeRepo *repo.ThemeRepo
+	userRepo  *repo.UserRepo
 }
 
-func NewCompilerService(pageRepo *repo.PageRepo, blockRepo *repo.BlockRepo, themeRepo *repo.ThemeRepo) *CompilerService {
+func NewCompilerService(pageRepo *repo.PageRepo, blockRepo *repo.BlockRepo, themeRepo *repo.ThemeRepo, userRepo *repo.UserRepo) *CompilerService {
 	return &CompilerService{
 		pageRepo:  pageRepo,
 		blockRepo: blockRepo,
 		themeRepo: themeRepo,
+		userRepo:  userRepo,
 	}
 }
 
 type CompiledPage struct {
 	Page   CompiledPageInfo   `json:"page"`
+	User   *CompiledUserInfo  `json:"user,omitempty"`
 	Theme  json.RawMessage    `json:"theme"`
 	Blocks []CompiledBlock    `json:"blocks"`
 }
@@ -33,6 +37,11 @@ type CompiledPageInfo struct {
 	Locale   string          `json:"locale"`
 	Mode     string          `json:"mode"`
 	Settings json.RawMessage `json:"settings"`
+}
+
+type CompiledUserInfo struct {
+	Username    *string `json:"username"`
+	DisplayName *string `json:"display_name"`
 }
 
 type CompiledBlock struct {
@@ -66,6 +75,17 @@ func (s *CompilerService) Compile(ctx context.Context, pageID int64) (*CompiledP
 	if err != nil {
 		return nil, err
 	}
+
+	// Get user info
+	user, err := s.userRepo.GetByID(ctx, page.UserID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Debug log
+	fmt.Printf("[Compiler] Compiling page %d for user %d\n", pageID, page.UserID)
+	fmt.Printf("[Compiler] User: username=%v, display_name=%v\n", user.Username, user.DisplayName)
+	fmt.Printf("[Compiler] Page settings: %s\n", string(page.Settings))
 
 	// Get theme config
 	var themeConfig json.RawMessage
@@ -169,9 +189,16 @@ func (s *CompilerService) Compile(ctx context.Context, pageID int64) (*CompiledP
 			Mode:     page.ThemeMode,
 			Settings: page.Settings,
 		},
+		User: &CompiledUserInfo{
+			Username:    user.Username,
+			DisplayName: user.DisplayName,
+		},
 		Theme:  themeConfig,
 		Blocks: compiledBlocks,
 	}
+	
+	fmt.Printf("[Compiler] Compiled user info: username=%v, display_name=%v\n", compiled.User.Username, compiled.User.DisplayName)
+	fmt.Printf("[Compiler] Compiled %d blocks\n", len(compiledBlocks))
 
 	return compiled, nil
 }
