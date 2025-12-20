@@ -32,6 +32,7 @@ const defaultAppearance = {
 	},
 	header: {
 		style: 'default' as 'default' | 'minimal' | 'centered' | 'card',
+		align: 'center' as 'left' | 'center' | 'right',
 		showAvatar: true,
 		showBio: true,
 		showSocials: true,
