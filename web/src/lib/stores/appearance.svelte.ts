@@ -46,6 +46,8 @@ const defaultAppearance = {
 		avatarShape: 'circle' as 'circle' | 'rounded' | 'square',
 		bioSize: 'M' as 'S' | 'M' | 'L' | 'XL',
 		bioColor: '' as string, // empty = use textSecondary from colors
+		socialIconsColor: '' as string, // empty = use textSecondary
+		socialIconsBg: true, // show background by default
 		cover: {
 			type: 'color' as 'color' | 'image',
 			color: '#c2185b',
