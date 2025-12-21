@@ -140,9 +140,9 @@ func (s *PageService) Save(ctx context.Context, pageID int64, req *SaveRequest) 
 		if req.Page.ThemePresetID != 0 {
 			existing.ThemePresetID = req.Page.ThemePresetID
 		}
-		if req.Page.ThemeCustomID != nil {
-			existing.ThemeCustomID = req.Page.ThemeCustomID
-		}
+		// ALWAYS update ThemeCustomID (even if nil) to allow clearing custom theme
+		existing.ThemeCustomID = req.Page.ThemeCustomID
+		
 		if req.Page.ThemeMode != "" {
 			existing.ThemeMode = req.Page.ThemeMode
 		}

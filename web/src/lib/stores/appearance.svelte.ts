@@ -1,15 +1,17 @@
-import { themes, pages, type ThemePreset, type Page } from '$lib/api/client';
+import { themes, pages, type ThemePreset, type Page, type ThemeCustom } from '$lib/api/client';
 
 // Appearance settings state
 let loading = $state(true);
 let saving = $state(false);
 let presets = $state<ThemePreset[]>([]);
+let customTheme = $state<ThemeCustom | null>(null);
 let currentPage = $state<Page | null>(null);
 let selectedPresetId = $state<number>(1);
 let originalPresetId = $state<number>(1);
 let customPatch = $state<Record<string, any>>({});
 let originalPatch = $state<Record<string, any>>({});
 let dirty = $state(false);
+let isUsingCustom = $state(false); // Track if currently using custom theme
 
 // Default appearance values (fallback khi preset không có)
 const defaultAppearance = {
@@ -44,7 +46,11 @@ const defaultAppearance = {
 		showSocials: true,
 		avatarSize: 'M' as 'S' | 'M' | 'L',
 		avatarShape: 'circle' as 'circle' | 'rounded' | 'square',
+		avatarBorderColor: '' as string, // empty = use default white
+		avatarBorderWidth: 3, // border width in pixels
+		nameColor: '' as string, // empty = use text from colors
 		bioSize: 'M' as 'S' | 'M' | 'L' | 'XL',
+		bioAlign: 'center' as 'left' | 'center' | 'right',
 		bioColor: '' as string, // empty = use textSecondary from colors
 		socialIconsColor: '' as string, // empty = use textSecondary
 		socialIconsBg: true, // show background by default
@@ -371,10 +377,12 @@ export function getAppearance() {
 		get loading() { return loading; },
 		get saving() { return saving; },
 		get presets() { return presets; },
+		get customTheme() { return customTheme; },
 		get currentPage() { return currentPage; },
 		get selectedPresetId() { return selectedPresetId; },
 		get customPatch() { return customPatch; },
 		get dirty() { return dirty; },
+		get isUsingCustom() { return isUsingCustom; },
 		get settings(): AppearanceSettings {
 			return computeSettings();
 		},
@@ -388,27 +396,26 @@ export function getAppearance() {
 export async function loadAppearance(pageId: number) {
 	loading = true;
 	try {
-		const [presetsData, pageData] = await Promise.all([
+		const [presetsData, customThemeData, pageData] = await Promise.all([
 			themes.listPresets(),
+			themes.getUserCustom(),
 			pages.get(pageId)
 		]);
 		
 		presets = presetsData;
+		customTheme = customThemeData;
 		currentPage = pageData;
-		selectedPresetId = pageData.theme_preset_id;
-		originalPresetId = pageData.theme_preset_id;
 		
-		// Load custom patch from page settings if exists
-		if (pageData.settings && typeof pageData.settings === 'object') {
-			const settings = pageData.settings as Record<string, any>;
-			if (settings.appearance) {
-				customPatch = { ...settings.appearance };
-				originalPatch = { ...settings.appearance };
-			} else {
-				customPatch = {};
-				originalPatch = {};
-			}
+		// Determine if using custom theme
+		if (pageData.theme_custom_id && customThemeData) {
+			isUsingCustom = true;
+			selectedPresetId = customThemeData.based_on_preset_id;
+			customPatch = (customThemeData.patch as Record<string, any>) || {};
+			originalPatch = { ...customPatch };
 		} else {
+			isUsingCustom = false;
+			selectedPresetId = pageData.theme_preset_id;
+			originalPresetId = pageData.theme_preset_id;
 			customPatch = {};
 			originalPatch = {};
 		}
@@ -423,11 +430,21 @@ export async function loadAppearance(pageId: number) {
 
 // Chọn preset - reset customPatch để dùng preset mặc định
 export function selectPreset(presetId: number) {
-	if (selectedPresetId === presetId) return;
+	if (selectedPresetId === presetId && !isUsingCustom) return;
 	
 	selectedPresetId = presetId;
-	// Reset custom patch khi đổi preset để preview hiển thị đúng preset
+	isUsingCustom = false;
 	customPatch = {};
+	checkDirty();
+}
+
+// Select custom theme
+export function selectCustomTheme() {
+	if (!customTheme) return;
+	
+	isUsingCustom = true;
+	selectedPresetId = customTheme.based_on_preset_id;
+	customPatch = (customTheme.patch as Record<string, any>) || {};
 	checkDirty();
 }
 
@@ -448,23 +465,49 @@ export function updateSetting(path: string, value: any) {
 	current[keys[keys.length - 1]] = value;
 	
 	customPatch = newPatch;
+	
+	// When user makes changes, they're now using custom theme
+	if (Object.keys(newPatch).length > 0) {
+		isUsingCustom = true;
+	}
+	
 	checkDirty();
 }
 
 function checkDirty() {
-	// Check if preset changed
+	// Check if using custom theme changed
+	const wasUsingCustom = currentPage?.theme_custom_id != null;
+	if (isUsingCustom !== wasUsingCustom) {
+		dirty = true;
+		return;
+	}
+	
+	// If using custom, check if patch changed
+	if (isUsingCustom) {
+		dirty = JSON.stringify(customPatch) !== JSON.stringify(originalPatch);
+		return;
+	}
+	
+	// If using preset, check if preset changed
 	if (selectedPresetId !== originalPresetId) {
 		dirty = true;
 		return;
 	}
-	// Check if patch changed
-	dirty = JSON.stringify(customPatch) !== JSON.stringify(originalPatch);
+	
+	dirty = false;
 }
 
 // Reset to original values (undo changes since last save)
 export function resetAppearance() {
-	selectedPresetId = originalPresetId;
-	customPatch = { ...originalPatch };
+	if (currentPage?.theme_custom_id && customTheme) {
+		isUsingCustom = true;
+		selectedPresetId = customTheme.based_on_preset_id;
+		customPatch = { ...originalPatch };
+	} else {
+		isUsingCustom = false;
+		selectedPresetId = originalPresetId;
+		customPatch = {};
+	}
 	dirty = false;
 }
 
@@ -480,26 +523,68 @@ export async function saveAppearance(): Promise<boolean> {
 	
 	saving = true;
 	try {
-		const updatedSettings = {
-			...(currentPage.settings || {}),
-			appearance: customPatch
-		};
+		let customThemeId: number | null = null;
 		
+		// Only create custom theme when using custom with changes
+		if (isUsingCustom && Object.keys(customPatch).length > 0) {
+			const result = await themes.createCustom(selectedPresetId, customPatch);
+			customThemeId = result.id;
+			customTheme = result;
+		} else {
+			// Using preset only → set custom_id = null
+			customThemeId = null;
+		}
+		
+		// Update page with theme settings
 		await pages.save(currentPage.id, {
 			page: {
 				...currentPage,
 				theme_preset_id: selectedPresetId,
-				settings: updatedSettings
+				theme_custom_id: customThemeId || undefined,
+				settings: {}
 			}
 		});
 		
 		// Update original values after successful save
 		originalPresetId = selectedPresetId;
-		originalPatch = { ...customPatch };
+		originalPatch = isUsingCustom ? { ...customPatch } : {};
+		
+		// Reload to get fresh data
+		await loadAppearance(currentPage.id);
+		
 		dirty = false;
 		return true;
 	} catch (e) {
 		console.error('Failed to save appearance:', e);
+		return false;
+	} finally {
+		saving = false;
+	}
+}
+
+// Delete custom theme
+export async function deleteCustomTheme(): Promise<boolean> {
+	if (!customTheme || !currentPage) return false;
+	
+	saving = true;
+	try {
+		await themes.deleteCustom(customTheme.id);
+		
+		// Switch to preset
+		await pages.save(currentPage.id, {
+			page: {
+				...currentPage,
+				theme_preset_id: selectedPresetId,
+				theme_custom_id: undefined
+			}
+		});
+		
+		// Reload
+		await loadAppearance(currentPage.id);
+		
+		return true;
+	} catch (e) {
+		console.error('Failed to delete custom theme:', e);
 		return false;
 	} finally {
 		saving = false;

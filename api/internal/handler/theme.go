@@ -33,6 +33,18 @@ func (h *ThemeHandler) ListPresets(c *fiber.Ctx) error {
 	return util.OK(c, presets)
 }
 
+func (h *ThemeHandler) GetUserCustomTheme(c *fiber.Ctx) error {
+	userID := middleware.GetUserID(c)
+
+	custom, err := h.themeService.GetUserCustomTheme(c.Context(), userID)
+	if err != nil {
+		// No custom theme found - return null
+		return util.OK(c, nil)
+	}
+
+	return util.OK(c, custom)
+}
+
 type CreateCustomRequest struct {
 	PresetID int64           `json:"preset_id"`
 	Patch    json.RawMessage `json:"patch"`
@@ -56,6 +68,22 @@ func (h *ThemeHandler) CreateCustom(c *fiber.Ctx) error {
 	}
 
 	return util.Created(c, custom)
+}
+
+func (h *ThemeHandler) DeleteCustom(c *fiber.Ctx) error {
+	userID := middleware.GetUserID(c)
+	
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return util.BadRequest(c, "invalid id")
+	}
+
+	err = h.themeService.DeleteCustomTheme(c.Context(), int64(id), userID)
+	if err != nil {
+		return util.InternalError(c)
+	}
+
+	return util.OK(c, fiber.Map{"deleted": true})
 }
 
 type ApplyThemeRequest struct {

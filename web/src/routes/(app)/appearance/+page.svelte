@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { getAuth } from '$lib/stores/auth.svelte';
-	import { getAppearance, loadAppearance, selectPreset, updateSetting, saveAppearance, resetAppearance, resetToPresetDefaults, buildGradientString } from '$lib/stores/appearance.svelte';
+	import { getAppearance, loadAppearance, selectPreset, selectCustomTheme, updateSetting, saveAppearance, resetAppearance, resetToPresetDefaults, deleteCustomTheme, buildGradientString } from '$lib/stores/appearance.svelte';
 	import { bio } from '$lib/api/client';
 	import { Palette, Image, User, Link, Droplets, Type, Save, AlertTriangle, Sun, Moon, AlignLeft, AlignCenter, AlignRight, Settings, RefreshCw, Instagram, Music, Facebook, Twitter, Youtube, Linkedin, Github, Globe, X } from 'lucide-svelte';
 
@@ -231,27 +231,130 @@
 		return appearance.settings.colors.text;
 	}
 
-	// Lấy màu preview cho theme card
-	function getPresetColor(preset: any): string {
-		const config = preset.config;
-		if (!config) return '#f2f2f7';
+	// Lấy theme preview styles - đồng bộ 100% với theme config
+	function getThemePreviewStyles(preset: any) {
+		console.log(`\n=== [${preset?.name}] Theme Preview Styles ===`);
 		
-		// Ưu tiên lấy từ background
-		if (config.background) {
-			if (config.background.gradient) return config.background.gradient;
-			if (config.background.color) return config.background.color;
+		const config = preset?.config;
+		if (!config) {
+			console.log(`[${preset?.name}] No config found, using defaults`);
+			return {
+				background: '#f2f2f7',
+				textColor: '#1c1c1e',
+				textMuted: '#8e8e93',
+				cardBg: 'rgba(255, 255, 255, 0.85)',
+				cardRadius: '8px',
+				cardShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+				cardBorder: 'none',
+				avatarBg: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))',
+				avatarBorder: '2px solid rgba(255, 255, 255, 0.95)',
+				socialBg: 'rgba(255, 255, 255, 0.75)'
+			};
 		}
 		
-		// Fallback theo tên
-		const colors: Record<string, string> = {
-			'Light': '#f2f2f7',
-			'Dark': '#1c1c1e',
-			'Ocean': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-			'Sunset': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-			'Forest': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-			'Aurora Glass': 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
+		console.log(`[${preset.name}] Full config:`, config);
+		
+		// 1. Background
+		let background = '#f2f2f7';
+		if (config.background?.gradient) {
+			background = config.background.gradient;
+			console.log(`[${preset.name}] Background: gradient =`, background);
+		} else if (config.background?.color) {
+			background = config.background.color;
+			console.log(`[${preset.name}] Background: color =`, background);
+		}
+		
+		// 2. Text colors từ semantic
+		const textColor = config.semantic?.color?.text?.default || '#1c1c1e';
+		const textMuted = config.semantic?.color?.text?.muted || '#8e8e93';
+		console.log(`[${preset.name}] Text colors:`, { textColor, textMuted });
+		
+		// 3. Card background từ recipes hoặc semantic - PRIORITY ORDER
+		let cardBg = 'rgba(255, 255, 255, 0.85)'; // fallback
+		
+		console.log(`[${preset.name}] Checking recipes.linkItem.base:`, config.recipes?.linkItem?.base);
+		
+		// Ưu tiên 1: recipes.linkItem.base.background (chính xác nhất)
+		if (config.recipes?.linkItem?.base?.background) {
+			cardBg = config.recipes.linkItem.base.background;
+			console.log(`[${preset.name}] ✅ Using recipes.linkItem.base.background:`, cardBg);
+		} 
+		// Ưu tiên 2: semantic.color.surface.card (backup)
+		else if (config.semantic?.color?.surface?.card) {
+			cardBg = config.semantic.color.surface.card;
+			console.log(`[${preset.name}] ✅ Using semantic.color.surface.card:`, cardBg);
+		} else {
+			console.log(`[${preset.name}] ⚠️ Using fallback cardBg:`, cardBg);
+		}
+		
+		// 4. Card border radius từ recipes
+		let cardRadius = '8px';
+		if (config.recipes?.linkItem?.base?.borderRadius) {
+			const radius = config.recipes.linkItem.base.borderRadius;
+			cardRadius = typeof radius === 'number' ? `${radius}px` : radius;
+			console.log(`[${preset.name}] Card radius:`, cardRadius);
+		}
+		
+		// 5. Card shadow từ recipes
+		let cardShadow = '0 2px 6px rgba(0, 0, 0, 0.12)';
+		if (config.recipes?.linkItem?.base?.shadow) {
+			cardShadow = config.recipes.linkItem.base.shadow;
+			console.log(`[${preset.name}] Card shadow:`, cardShadow);
+		}
+		
+		// 6. Card border từ recipes (nếu có)
+		let cardBorder = 'none';
+		if (config.recipes?.linkItem?.base?.border) {
+			cardBorder = config.recipes.linkItem.base.border;
+			console.log(`[${preset.name}] Card border:`, cardBorder);
+		}
+		
+		// 7. Avatar & social colors - tự động dựa trên background
+		const isDark = background.includes('#1c1c1e') || background.includes('#0f172a') || background.includes('#2c2c2e');
+		const avatarBg = isDark 
+			? 'linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1))'
+			: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))';
+		const avatarBorder = isDark
+			? '2px solid rgba(255, 255, 255, 0.3)'
+			: '2px solid rgba(255, 255, 255, 0.95)';
+		const socialBg = isDark
+			? 'rgba(255, 255, 255, 0.15)'
+			: 'rgba(255, 255, 255, 0.75)';
+		
+		const result = {
+			background,
+			textColor,
+			textMuted,
+			cardBg,
+			cardRadius,
+			cardShadow,
+			cardBorder,
+			avatarBg,
+			avatarBorder,
+			socialBg
 		};
-		return colors[preset.name] || '#f2f2f7';
+		
+		console.log(`[${preset.name}] 🎨 Final styles:`, result);
+		console.log(`=== End [${preset.name}] ===\n`);
+		
+		return result;
+	}
+	
+	// Legacy functions for backward compatibility
+	function getPresetBackground(preset: any): string {
+		return getThemePreviewStyles(preset).background;
+	}
+	
+	function getPresetTextColor(preset: any): string {
+		return getThemePreviewStyles(preset).textColor;
+	}
+	
+	function getPresetCardColor(preset: any): string {
+		return getThemePreviewStyles(preset).cardBg;
+	}
+	
+	function getPresetColor(preset: any): string {
+		return getPresetBackground(preset);
 	}
 
 	// Lấy background style cho preview - dùng settings đã computed
@@ -683,13 +786,98 @@
 					<div class="card">
 						<div class="card-header"><h2>Theme Presets</h2></div>
 						<div class="card-body">
-							<div class="grid-3">
+							<div class="theme-grid">
+								<!-- My Theme Card (if exists) -->
+								{#if appearance.customTheme}
+									{@const basePreset = appearance.presets.find(p => p.id === appearance.customTheme?.based_on_preset_id)}
+									{@const styles = getThemePreviewStyles(basePreset)}
+									<div class="theme-card-wrapper" class:active={appearance.isUsingCustom}>
+										<button 
+											class="theme-card-phone"
+											onclick={() => selectCustomTheme()}
+											aria-label="Select My Theme"
+										>
+											<!-- Phone Preview -->
+											<div class="phone-preview" style="background: {styles.background}">
+												<!-- Custom Badge -->
+												<div class="custom-badge-overlay">
+													<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+														<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+													</svg>
+													<span>MY THEME</span>
+												</div>
+												
+												<!-- Mini Bio Preview -->
+												<div class="mini-bio-preview">
+													<div class="mini-avatar" style="background: {styles.avatarBg}; border: {styles.avatarBorder}"></div>
+													<div class="mini-name" style="color: {styles.textColor}">Username</div>
+													<div class="mini-bio" style="color: {styles.textMuted}">Your bio text here</div>
+													<div class="mini-socials">
+														<div class="mini-social-icon" style="background: {styles.socialBg}"></div>
+														<div class="mini-social-icon" style="background: {styles.socialBg}"></div>
+														<div class="mini-social-icon" style="background: {styles.socialBg}"></div>
+													</div>
+												</div>
+												
+												<!-- Mini Link Blocks -->
+												<div class="mini-links">
+													<div class="mini-link" style="background: {styles.cardBg}; border-radius: {styles.cardRadius}; box-shadow: {styles.cardShadow}; border: {styles.cardBorder}"></div>
+													<div class="mini-link" style="background: {styles.cardBg}; border-radius: {styles.cardRadius}; box-shadow: {styles.cardShadow}; border: {styles.cardBorder}"></div>
+													<div class="mini-link" style="background: {styles.cardBg}; border-radius: {styles.cardRadius}; box-shadow: {styles.cardShadow}; border: {styles.cardBorder}"></div>
+												</div>
+											</div>
+										</button>
+										<div class="theme-card-footer">
+											<span class="theme-name">My Theme</span>
+											<button 
+												class="btn-delete-mini" 
+												onclick={(e) => {
+													e.stopPropagation();
+													if (confirm('Xóa My Theme? Bạn sẽ quay về preset gần nhất.')) {
+														deleteCustomTheme();
+													}
+												}}
+												title="Xóa"
+												aria-label="Delete My Theme"
+											>
+												<X size={12} />
+											</button>
+										</div>
+									</div>
+								{/if}
+								
+								<!-- Preset Themes -->
 								{#each appearance.presets as preset}
-									<button class="theme-card" class:active={appearance.selectedPresetId === preset.id} onclick={() => selectPreset(preset.id)}>
-										<div class="preview-item" style="background: {getPresetColor(preset)}" class:active={appearance.selectedPresetId === preset.id}></div>
-										<span class="text-sm">{preset.name}</span>
-										{#if preset.tier === 'pro'}<span class="badge pro">PRO</span>{/if}
-									</button>
+									{@const styles = getThemePreviewStyles(preset)}
+									<div class="theme-card-wrapper" class:active={!appearance.isUsingCustom && appearance.selectedPresetId === preset.id}>
+										<button class="theme-card-phone" onclick={() => selectPreset(preset.id)}>
+											<!-- Phone Preview -->
+											<div class="phone-preview" style="background: {styles.background}">
+												<!-- Mini Bio Preview -->
+												<div class="mini-bio-preview">
+													<div class="mini-avatar" style="background: {styles.avatarBg}; border: {styles.avatarBorder}"></div>
+													<div class="mini-name" style="color: {styles.textColor}">Username</div>
+													<div class="mini-bio" style="color: {styles.textMuted}">Your bio text here</div>
+													<div class="mini-socials">
+														<div class="mini-social-icon" style="background: {styles.socialBg}"></div>
+														<div class="mini-social-icon" style="background: {styles.socialBg}"></div>
+														<div class="mini-social-icon" style="background: {styles.socialBg}"></div>
+													</div>
+												</div>
+												
+												<!-- Mini Link Blocks -->
+												<div class="mini-links">
+													<div class="mini-link" style="background: {styles.cardBg}; border-radius: {styles.cardRadius}; box-shadow: {styles.cardShadow}; border: {styles.cardBorder}"></div>
+													<div class="mini-link" style="background: {styles.cardBg}; border-radius: {styles.cardRadius}; box-shadow: {styles.cardShadow}; border: {styles.cardBorder}"></div>
+													<div class="mini-link" style="background: {styles.cardBg}; border-radius: {styles.cardRadius}; box-shadow: {styles.cardShadow}; border: {styles.cardBorder}"></div>
+												</div>
+											</div>
+										</button>
+										<div class="theme-card-footer">
+											<span class="theme-name">{preset.name}</span>
+											{#if preset.tier === 'pro'}<span class="badge pro">PRO</span>{/if}
+										</div>
+									</div>
 								{/each}
 							</div>
 						</div>
@@ -1842,38 +2030,60 @@
 						<div class="debug-item">{Object.keys(appearance.customPatch).length === 0 ? '(empty - using pure preset)' : JSON.stringify(appearance.customPatch).substring(0, 100) + '...'}</div>
 					</div>
 					<div class="debug-section">
-						<strong>Background:</strong>
-						<div class="debug-item">Type: {appearance.settings.background.type}</div>
-						<div class="debug-item">Color: {appearance.settings.background.color}</div>
-						<div class="debug-item">Gradient: {appearance.settings.background.gradient || 'none'}</div>
-						<div class="debug-item">Blur: {appearance.settings.background.effects.blur}px</div>
-						<div class="debug-item">Dim: {appearance.settings.background.effects.dim}</div>
+						<strong>Page:</strong>
+						<div class="debug-item">Mode: {appearance.settings.page.mode}</div>
+						<div class="debug-item">Text Align: {appearance.settings.page.layout.textAlign}</div>
+						<div class="debug-item">Base Font Size: {appearance.settings.page.layout.baseFontSize}</div>
+						<div class="debug-item">Max Width: {appearance.settings.page.layout.maxWidth}px</div>
+						<div class="debug-item">Page Padding: {appearance.settings.page.layout.pagePadding}px</div>
+						<div class="debug-item">Block Gap: {appearance.settings.page.layout.blockGap}px</div>
 					</div>
 					<div class="debug-section">
-						<strong>Colors:</strong>
+						<strong>Background:</strong>
+						<div class="debug-item">Type: {appearance.settings.background.type}</div>
+						<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.background.color}"></span> Color: {appearance.settings.background.color}</div>
+						<div class="debug-item">Gradient: {appearance.settings.background.gradient || 'none'}</div>
+						{#if appearance.settings.background.imageUrl}
+							<div class="debug-item">Image URL: {appearance.settings.background.imageUrl.substring(0, 40)}...</div>
+						{/if}
+						<div class="debug-item">Blur: {appearance.settings.background.effects.blur}px</div>
+						<div class="debug-item">Dim: {appearance.settings.background.effects.dim}</div>
+						{#if appearance.settings.background.customGradient?.enabled}
+							<div class="debug-item">Custom Gradient: {appearance.settings.background.customGradient.type} {appearance.settings.background.customGradient.angle}° ({appearance.settings.background.customGradient.fromColor} → {appearance.settings.background.customGradient.toColor})</div>
+						{/if}
+					</div>
+					<div class="debug-section">
+						<strong>Colors (Semantic):</strong>
 						<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.colors.primary}"></span> Primary: {appearance.settings.colors.primary}</div>
 						<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.colors.text}"></span> Text: {appearance.settings.colors.text}</div>
 						<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.colors.textSecondary}"></span> Text Secondary: {appearance.settings.colors.textSecondary}</div>
+						<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.colors.background}"></span> Background: {appearance.settings.colors.background}</div>
 						<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.colors.cardBackground}"></span> Card BG: {appearance.settings.colors.cardBackground}</div>
+						<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.colors.border}"></span> Border: {appearance.settings.colors.border}</div>
 					</div>
 					<div class="debug-section">
-						<strong>Links:</strong>
+						<strong>Links/Blocks:</strong>
 						<div class="debug-item">Style: {appearance.settings.links.style}</div>
+						<div class="debug-item">Text Align: {appearance.settings.links.textAlign}</div>
+						<div class="debug-item">Font Size: {appearance.settings.links.fontSize}</div>
 						<div class="debug-item">Radius: {appearance.settings.links.borderRadius}px</div>
 						<div class="debug-item">Padding: {appearance.settings.links.padding}px</div>
 						<div class="debug-item">Gap: {appearance.settings.links.gap}px</div>
+						<div class="debug-item"><span class="color-dot" style="background:{getActualBlockTextColor()}"></span> Block Text Color: {getActualBlockTextColor()} {appearance.settings.links.textColor ? '(custom)' : '(auto)'}</div>
+						<div class="debug-item"><span class="color-dot" style="background:{getActualBlockBgColor()}"></span> Block BG Color: {getActualBlockBgColor()}</div>
+						<div class="debug-item">Show Background: {appearance.settings.links.showBackground}</div>
+						<div class="debug-item">Show Border: {appearance.settings.links.showBorder}</div>
+						{#if appearance.settings.links.showBorder}
+							<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.links.borderColor}"></span> Border Color: {appearance.settings.links.borderColor}</div>
+							<div class="debug-item">Border Width: {appearance.settings.links.borderWidth}px</div>
+						{/if}
 						<div class="debug-item">Show Shadow: {appearance.settings.links.showShadow}</div>
 						{#if appearance.settings.links.showShadow}
 							<div class="debug-item">Shadow Blur: {appearance.settings.links.shadowBlur}px</div>
 							<div class="debug-item">Shadow Offset: {appearance.settings.links.shadowOffsetX}px, {appearance.settings.links.shadowOffsetY}px</div>
-							<div class="debug-item">Shadow Color: {appearance.settings.links.shadowColor}</div>
+							<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.links.shadowColor}"></span> Shadow Color: {appearance.settings.links.shadowColor}</div>
 							<div class="debug-item">Shadow Opacity: {appearance.settings.links.shadowOpacity}</div>
 						{/if}
-					</div>
-					<div class="debug-section">
-						<strong>Layout:</strong>
-						<div class="debug-item">Page Padding: {appearance.settings.page.layout.pagePadding}px</div>
-						<div class="debug-item">Block Gap: {appearance.settings.page.layout.blockGap}px</div>
 					</div>
 					<div class="debug-section">
 						<strong>Header:</strong>
@@ -1881,16 +2091,32 @@
 						<div class="debug-item">Show Avatar: {appearance.settings.header.showAvatar}</div>
 						<div class="debug-item">Avatar Size: {appearance.settings.header.avatarSize}</div>
 						<div class="debug-item">Avatar Shape: {appearance.settings.header.avatarShape}</div>
+						{#if appearance.settings.header.avatarBorderColor}
+							<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.header.avatarBorderColor}"></span> Avatar Border: {appearance.settings.header.avatarBorderWidth || 3}px {appearance.settings.header.avatarBorderColor}</div>
+						{/if}
+						<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.header.nameColor || appearance.settings.colors.text}"></span> Name Color: {appearance.settings.header.nameColor || '(auto)'}</div>
 						<div class="debug-item">Show Bio: {appearance.settings.header.showBio}</div>
 						<div class="debug-item">Bio Size: {appearance.settings.header.bioSize}</div>
 						<div class="debug-item">Bio Align: {appearance.settings.header.bioAlign}</div>
 						<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.header.bioColor || appearance.settings.colors.textSecondary}"></span> Bio Color: {appearance.settings.header.bioColor || '(auto)'}</div>
+						<div class="debug-item">Show Socials: {appearance.settings.header.showSocials}</div>
+						{#if appearance.settings.header.showSocials}
+							<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.header.socialIconsColor || appearance.settings.colors.textSecondary}"></span> Social Icons Color: {appearance.settings.header.socialIconsColor || '(auto)'}</div>
+							<div class="debug-item">Social Icons BG: {appearance.settings.header.socialIconsBg}</div>
+						{/if}
+						<div class="debug-item">Cover Type: {appearance.settings.header.cover.type}</div>
+						{#if appearance.settings.header.cover.type === 'color'}
+							<div class="debug-item"><span class="color-dot" style="background:{appearance.settings.header.cover.color}"></span> Cover Color: {appearance.settings.header.cover.color}</div>
+						{:else if appearance.settings.header.cover.imageUrl}
+							<div class="debug-item">Cover Image: {appearance.settings.header.cover.imageUrl.substring(0, 40)}...</div>
+						{/if}
 					</div>
 					<div class="debug-section">
 						<strong>Computed Styles (Preview):</strong>
 						<div class="debug-item">BG Style: {getBgStyle().substring(0, 50)}...</div>
 						<div class="debug-item">Link BG: {getLinkBg()}</div>
 						<div class="debug-item">Link Color: {getLinkColor()}</div>
+						<div class="debug-item">Link Border: {getLinkBorder()}</div>
 						<div class="debug-item">Shadow: {getShadow()}</div>
 					</div>
 				</div>
@@ -2031,6 +2257,109 @@
 
 	.theme-card { position: relative; background: transparent; padding: 0; text-align: center; }
 	.theme-card .badge { position: absolute; top: 4px; right: 4px; }
+	
+	/* Theme preview button - consistent with preset cards */
+	.theme-preview-btn {
+		width: 100%;
+		background: transparent;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		display: block;
+		text-align: center;
+	}
+	
+	/* My Theme Card Styling - đồng bộ với preset cards */
+	.my-theme-card {
+		position: relative;
+	}
+	
+	.my-theme-card .preview-item {
+		position: relative;
+		border: 2px solid transparent;
+		transition: all 0.2s ease;
+	}
+	
+	.my-theme-card .preview-item.active {
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 3px var(--color-primary-light);
+	}
+	
+	.my-theme-card:hover .preview-item {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+	
+	/* Custom badge - đẹp và nổi bật */
+	.custom-badge {
+		position: absolute;
+		top: 8px;
+		left: 8px;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+		color: white;
+		padding: 4px 10px;
+		border-radius: 12px;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.5px;
+		box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+		z-index: 2;
+	}
+	
+	.custom-badge svg {
+		width: 12px;
+		height: 12px;
+		flex-shrink: 0;
+	}
+	
+	/* Theme label - đồng bộ với preset cards */
+	.theme-label {
+		padding: 8px 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+	}
+	
+	.my-theme-card.active .theme-label {
+		color: var(--color-primary);
+		font-weight: 600;
+	}
+	
+	/* Delete button - floating style */
+	.btn-delete-theme {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		background: rgba(255, 255, 255, 0.95);
+		backdrop-filter: blur(8px);
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		border-radius: 6px;
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		z-index: 3;
+		opacity: 0;
+	}
+	
+	.my-theme-card:hover .btn-delete-theme {
+		opacity: 1;
+	}
+	
+	.btn-delete-theme:hover {
+		background: var(--color-danger);
+		border-color: var(--color-danger);
+		color: white;
+		transform: scale(1.1);
+	}
 
 	.color-scheme-card { background: transparent; padding: var(--space-3); text-align: center; border: 2px solid transparent; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s; }
 	.color-scheme-card:hover { border-color: var(--color-separator); background: var(--color-bg); }

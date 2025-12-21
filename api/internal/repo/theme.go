@@ -127,3 +127,27 @@ func (r *ThemeRepo) UpdateCustom(ctx context.Context, id int64, patch, compiled 
 	`, id, patch, compiled, hash)
 	return err
 }
+
+func (r *ThemeRepo) GetCustomByUserID(ctx context.Context, userID int64) (*model.ThemeCustom, error) {
+	var t model.ThemeCustom
+	err := r.db.QueryRow(ctx, `
+		SELECT id, user_id, based_on_preset_id, name, patch, compiled_config, hash, created_at, updated_at
+		FROM themes_custom WHERE user_id = $1
+		ORDER BY updated_at DESC
+		LIMIT 1
+	`, userID).Scan(
+		&t.ID, &t.UserID, &t.BasedOnPresetID, &t.Name, &t.Patch,
+		&t.CompiledConfig, &t.Hash, &t.CreatedAt, &t.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
+func (r *ThemeRepo) DeleteCustom(ctx context.Context, id, userID int64) error {
+	_, err := r.db.Exec(ctx, `
+		DELETE FROM themes_custom WHERE id = $1 AND user_id = $2
+	`, id, userID)
+	return err
+}

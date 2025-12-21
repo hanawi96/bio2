@@ -167,10 +167,18 @@ export const themes = {
 	listPresets: (tier?: string) =>
 		request<ThemePreset[]>(`/api/themes/presets${tier ? `?tier=${tier}` : ''}`),
 
+	getUserCustom: () =>
+		request<ThemeCustom | null>('/api/themes/custom'),
+
 	createCustom: (presetId: number, patch: object) =>
 		request<ThemeCustom>('/api/themes/custom', {
 			method: 'POST',
 			body: JSON.stringify({ preset_id: presetId, patch })
+		}),
+
+	deleteCustom: (id: number) =>
+		request<{ deleted: boolean }>(`/api/themes/custom/${id}`, {
+			method: 'DELETE'
 		})
 };
 

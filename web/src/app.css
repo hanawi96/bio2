@@ -983,3 +983,229 @@ textarea::placeholder {
 	background: rgba(255, 255, 255, 0.5);
 	transform: scale(1.1);
 }
+
+/* ========================================
+   Theme Card - Phone Preview Style
+   ======================================== */
+
+/* Theme Grid - 4 columns */
+.theme-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: var(--space-4);
+}
+
+@media (max-width: 1200px) {
+	.theme-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+@media (max-width: 768px) {
+	.theme-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (max-width: 480px) {
+	.theme-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Theme Card Wrapper */
+.theme-card-wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	position: relative;
+}
+
+.theme-card-wrapper.active .theme-card-phone {
+	border-color: var(--color-primary);
+	box-shadow: 0 0 0 3px var(--color-primary-light), var(--shadow-lg);
+}
+
+.theme-card-wrapper.active .theme-name {
+	color: var(--color-primary);
+	font-weight: 600;
+}
+
+/* Phone-like Card */
+.theme-card-phone {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 9 / 16;
+	border-radius: var(--radius-lg);
+	border: 2px solid var(--color-border);
+	overflow: hidden;
+	cursor: pointer;
+	transition: all var(--transition-base);
+	background: var(--color-bg-secondary);
+	padding: 0;
+	box-shadow: var(--shadow-md);
+}
+
+.theme-card-phone:hover {
+	transform: translateY(-4px);
+	box-shadow: var(--shadow-lg);
+	border-color: var(--color-text-tertiary);
+}
+
+.theme-card-phone:active {
+	transform: translateY(-2px);
+}
+
+/* Phone Preview Container */
+.phone-preview {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 12px 8px;
+	gap: 8px;
+	overflow: hidden;
+}
+
+/* Custom Badge Overlay */
+.custom-badge-overlay {
+	position: absolute;
+	top: 8px;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 3px 8px;
+	background: rgba(0, 122, 255, 0.95);
+	color: white;
+	border-radius: 12px;
+	font-size: 7px;
+	font-weight: 700;
+	letter-spacing: 0.3px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	z-index: 10;
+}
+
+.custom-badge-overlay svg {
+	width: 8px;
+	height: 8px;
+}
+
+/* Mini Bio Preview */
+.mini-bio-preview {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	margin-top: 8px;
+	z-index: 1;
+}
+
+.mini-avatar {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.mini-name {
+font-size: 9px;
+font-weight: 700;
+letter-spacing: 0.2px;
+text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.mini-bio {
+font-size: 6px;
+text-align: center;
+max-width: 80%;
+line-height: 1.3;
+text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.mini-socials {
+	display: flex;
+	gap: 4px;
+	margin-top: 2px;
+}
+
+.mini-social-icon {
+width: 10px;
+height: 10px;
+border-radius: 50%;
+
+box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+backdrop-filter: blur(4px);
+}
+
+/* Mini Link Blocks */
+.mini-links {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	width: 100%;
+	padding: 0 8px;
+	margin-top: 4px;
+	z-index: 1;
+}
+
+.mini-link {
+width: 100%;
+height: 20px;
+backdrop-filter: blur(8px);
+transition: all var(--transition-fast);
+}
+
+/* Theme Card Footer */
+.theme-card-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+	padding: 0 var(--space-1);
+}
+
+.theme-name {
+	font-size: var(--text-sm);
+	font-weight: 500;
+	color: var(--color-text);
+	transition: all var(--transition-base);
+	flex: 1;
+	text-align: center;
+}
+
+.btn-delete-mini {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: var(--color-danger);
+	color: white;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	opacity: 0.7;
+	transition: all var(--transition-base);
+	flex-shrink: 0;
+}
+
+.btn-delete-mini:hover {
+	opacity: 1;
+	transform: scale(1.1);
+}
+
+.btn-delete-mini:active {
+	transform: scale(0.95);
+}
+
+/* Badge in footer */
+.theme-card-footer .badge {
+	flex-shrink: 0;
+}
+
+
+

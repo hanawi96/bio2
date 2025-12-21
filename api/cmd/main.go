@@ -103,7 +103,9 @@ func main() {
 
 	// Themes
 	protected.Get("/themes/presets", themeHandler.ListPresets)
+	protected.Get("/themes/custom", themeHandler.GetUserCustomTheme)
 	protected.Post("/themes/custom", themeHandler.CreateCustom)
+	protected.Delete("/themes/custom/:id", themeHandler.DeleteCustom)
 	protected.Post("/themes/apply", themeHandler.Apply)
 
 	port := os.Getenv("PORT")
