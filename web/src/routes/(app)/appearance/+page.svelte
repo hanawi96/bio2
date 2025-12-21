@@ -358,7 +358,7 @@
 		const style = appearance.settings.header.style;
 		const baseSize = getAvatarSize();
 		const radius = getAvatarRadius();
-		const borderColor = appearance.settings.header.avatarBorderColor || 'rgba(0,0,0,0.15)';
+		const borderColor = appearance.settings.header.avatarBorderColor || '#ffffff';
 		const borderWidth = appearance.settings.header.avatarBorderWidth || 3;
 		
 		let size = baseSize;
@@ -372,9 +372,9 @@
 			return `width: ${size}px; height: ${size}px; border-radius: ${radius}; border: ${borderWidth}px solid ${borderColor}; top: ${topPosition}px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);`;
 		}
 		
-		// Minimal style: clean avatar with subtle shadow
+		// Minimal style: clean avatar with border and subtle shadow
 		if (style === 'minimal') {
-			return `width: ${size}px; height: ${size}px; border-radius: ${radius}; box-shadow: 0 2px 12px rgba(0,0,0,0.08);`;
+			return `width: ${size}px; height: ${size}px; border-radius: ${radius}; border: ${borderWidth}px solid ${borderColor}; box-shadow: 0 2px 12px rgba(0,0,0,0.08);`;
 		}
 		
 		return `width: ${size}px; height: ${size}px; border-radius: ${radius};`;
@@ -1006,19 +1006,45 @@
 							<div class="sub-tab-content">
 								{#if activeHeaderTab === 'avatar'}
 									<!-- Avatar Settings -->
-									<div class="setting-row">
-										<span class="setting-label">Kích thước Avatar</span>
-										<div class="option-group compact">
-											{#each avatarSizes as s}
-												<button class="option-btn small" class:active={appearance.settings.header.avatarSize === s.value} onclick={() => updateSetting('header.avatarSize', s.value)}>{s.label}</button>
+									
+									<!-- Avatar Shape with Visual Preview -->
+									<div class="setting-section">
+										<span class="setting-label">Hình dạng Avatar</span>
+										<p class="form-hint">Chọn kiểu hiển thị cho ảnh đại diện của bạn</p>
+										
+										<div class="avatar-shape-grid">
+											{#each avatarShapes as shape}
+												<button 
+													class="avatar-shape-card" 
+													class:active={appearance.settings.header.avatarShape === shape.value}
+													onclick={() => updateSetting('header.avatarShape', shape.value)}
+												>
+													<div class="avatar-preview-wrapper">
+														<div class="avatar-preview {shape.value}">
+															<div class="avatar-demo-image"></div>
+														</div>
+													</div>
+													<span class="shape-label">{shape.label}</span>
+												</button>
 											{/each}
 										</div>
 									</div>
-									<div class="setting-row">
-										<span class="setting-label">Hình dạng Avatar</span>
-										<div class="option-group compact">
-											{#each avatarShapes as s}
-												<button class="option-btn small" class:active={appearance.settings.header.avatarShape === s.value} onclick={() => updateSetting('header.avatarShape', s.value)}>{s.label}</button>
+
+									<!-- Avatar Size -->
+									<div class="setting-section">
+										<span class="setting-label">Kích thước Avatar</span>
+										<div class="avatar-size-options">
+											{#each avatarSizes as size}
+												<button 
+													class="avatar-size-btn" 
+													class:active={appearance.settings.header.avatarSize === size.value}
+													onclick={() => updateSetting('header.avatarSize', size.value)}
+												>
+													<div class="size-preview {size.value.toLowerCase()} {appearance.settings.header.avatarShape}">
+														<div class="size-demo-image"></div>
+													</div>
+													<span class="size-label">{size.label}</span>
+												</button>
 											{/each}
 										</div>
 									</div>
@@ -1027,7 +1053,6 @@
 									<div class="setting-row" style="margin-top: var(--space-4)">
 										<span class="setting-label">Độ dày viền Avatar</span>
 									</div>
-									<p class="form-hint" style="margin-bottom: var(--space-2)">Chỉ áp dụng cho kiểu header "Classic"</p>
 									<div class="slider-group">
 										<div class="slider-header">
 											<span class="slider-label">Border Width</span>
@@ -1048,22 +1073,21 @@
 									<div class="setting-row" style="margin-top: var(--space-4)">
 										<span class="setting-label">Màu viền Avatar</span>
 									</div>
-									<p class="form-hint" style="margin-bottom: var(--space-2)">Chỉ áp dụng cho kiểu header "Classic"</p>
 									<div class="color-setting-group" style="margin-top: var(--space-2)">
 										<div class="color-presets-row">
 											<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
 												<div class="gradient-icon"></div>
 											</button>
-											<input type="color" class="hidden-native-picker" value={appearance.settings.header.avatarBorderColor || '#000000'} onchange={(e) => updateSetting('header.avatarBorderColor', e.currentTarget.value)} />
+											<input type="color" class="hidden-native-picker" value={appearance.settings.header.avatarBorderColor || '#ffffff'} onchange={(e) => updateSetting('header.avatarBorderColor', e.currentTarget.value)} />
 											
-											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || 'rgba(0,0,0,0.15)') === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('header.avatarBorderColor', '#000000')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || 'rgba(0,0,0,0.15)') === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('header.avatarBorderColor', '#ffffff')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || 'rgba(0,0,0,0.15)') === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => updateSetting('header.avatarBorderColor', '#1c1c1e')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || 'rgba(0,0,0,0.15)') === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.avatarBorderColor', '#8e8e93')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || 'rgba(0,0,0,0.15)') === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('header.avatarBorderColor', '#ff3b30')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || 'rgba(0,0,0,0.15)') === '#ff9500'} style="background:#ff9500" title="#ff9500" onclick={() => updateSetting('header.avatarBorderColor', '#ff9500')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || 'rgba(0,0,0,0.15)') === '#007aff'} style="background:#007aff" title="#007aff" onclick={() => updateSetting('header.avatarBorderColor', '#007aff')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || 'rgba(0,0,0,0.15)') === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('header.avatarBorderColor', '#5856d6')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || '#ffffff') === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('header.avatarBorderColor', '#000000')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || '#ffffff') === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('header.avatarBorderColor', '#ffffff')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || '#ffffff') === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => updateSetting('header.avatarBorderColor', '#1c1c1e')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || '#ffffff') === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.avatarBorderColor', '#8e8e93')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || '#ffffff') === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('header.avatarBorderColor', '#ff3b30')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || '#ffffff') === '#ff9500'} style="background:#ff9500" title="#ff9500" onclick={() => updateSetting('header.avatarBorderColor', '#ff9500')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || '#ffffff') === '#007aff'} style="background:#007aff" title="#007aff" onclick={() => updateSetting('header.avatarBorderColor', '#007aff')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.header.avatarBorderColor || '#ffffff') === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('header.avatarBorderColor', '#5856d6')}></button>
 											
 											{#if appearance.settings.header.avatarBorderColor}
 												<button class="color-preset-circle reset-circle" title="Reset về mặc định" onclick={() => updateSetting('header.avatarBorderColor', '')}>
@@ -1091,14 +1115,21 @@
 											</button>
 											<input type="color" class="hidden-native-picker" value={appearance.settings.header.nameColor || appearance.settings.colors.text} onchange={(e) => updateSetting('header.nameColor', e.currentTarget.value)} />
 											
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('header.nameColor', '#000000')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('header.nameColor', '#ffffff')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => updateSetting('header.nameColor', '#1c1c1e')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.nameColor', '#8e8e93')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('header.nameColor', '#ff3b30')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#ff9500'} style="background:#ff9500" title="#ff9500" onclick={() => updateSetting('header.nameColor', '#ff9500')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#007aff'} style="background:#007aff" title="#007aff" onclick={() => updateSetting('header.nameColor', '#007aff')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.header.nameColor || appearance.settings.colors.text) === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('header.nameColor', '#5856d6')}></button>
+											<!-- Theme default color button -->
+											{#if !appearance.settings.header.nameColor}
+												<button class="color-preset-circle active" style="background:{appearance.settings.colors.text}" title="Theme default: {appearance.settings.colors.text}" onclick={() => updateSetting('header.nameColor', '')}></button>
+											{:else}
+												<button class="color-preset-circle" style="background:{appearance.settings.colors.text}" title="Theme default: {appearance.settings.colors.text}" onclick={() => updateSetting('header.nameColor', '')}></button>
+											{/if}
+											
+											<button class="color-preset-circle" class:active={appearance.settings.header.nameColor === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('header.nameColor', '#000000')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.header.nameColor === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('header.nameColor', '#ffffff')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.header.nameColor === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => updateSetting('header.nameColor', '#1c1c1e')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.header.nameColor === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.nameColor', '#8e8e93')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.header.nameColor === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('header.nameColor', '#ff3b30')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.header.nameColor === '#ff9500'} style="background:#ff9500" title="#ff9500" onclick={() => updateSetting('header.nameColor', '#ff9500')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.header.nameColor === '#007aff'} style="background:#007aff" title="#007aff" onclick={() => updateSetting('header.nameColor', '#007aff')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.header.nameColor === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('header.nameColor', '#5856d6')}></button>
 											
 											{#if appearance.settings.header.nameColor}
 												<button class="color-preset-circle reset-circle" title="Reset về mặc định" onclick={() => updateSetting('header.nameColor', '')}>
@@ -1127,13 +1158,20 @@
 												</button>
 												<input type="color" class="hidden-native-picker" value={appearance.settings.header.bioColor || appearance.settings.colors.textSecondary} onchange={(e) => updateSetting('header.bioColor', e.currentTarget.value)} />
 												
-												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#636366'} style="background:#636366" title="#636366" onclick={() => updateSetting('header.bioColor', '#636366')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.bioColor', '#8e8e93')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#aeaeb2'} style="background:#aeaeb2" title="#aeaeb2" onclick={() => updateSetting('header.bioColor', '#aeaeb2')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#c7c7cc'} style="background:#c7c7cc" title="#c7c7cc" onclick={() => updateSetting('header.bioColor', '#c7c7cc')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => updateSetting('header.bioColor', '#1c1c1e')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#3a3a3c'} style="background:#3a3a3c" title="#3a3a3c" onclick={() => updateSetting('header.bioColor', '#3a3a3c')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.bioColor || appearance.settings.colors.textSecondary) === '#48484a'} style="background:#48484a" title="#48484a" onclick={() => updateSetting('header.bioColor', '#48484a')}></button>
+												<!-- Theme default color button -->
+												{#if !appearance.settings.header.bioColor}
+													<button class="color-preset-circle active" style="background:{appearance.settings.colors.textSecondary}" title="Theme default: {appearance.settings.colors.textSecondary}" onclick={() => updateSetting('header.bioColor', '')}></button>
+												{:else}
+													<button class="color-preset-circle" style="background:{appearance.settings.colors.textSecondary}" title="Theme default: {appearance.settings.colors.textSecondary}" onclick={() => updateSetting('header.bioColor', '')}></button>
+												{/if}
+												
+												<button class="color-preset-circle" class:active={appearance.settings.header.bioColor === '#636366'} style="background:#636366" title="#636366" onclick={() => updateSetting('header.bioColor', '#636366')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.bioColor === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.bioColor', '#8e8e93')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.bioColor === '#aeaeb2'} style="background:#aeaeb2" title="#aeaeb2" onclick={() => updateSetting('header.bioColor', '#aeaeb2')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.bioColor === '#c7c7cc'} style="background:#c7c7cc" title="#c7c7cc" onclick={() => updateSetting('header.bioColor', '#c7c7cc')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.bioColor === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => updateSetting('header.bioColor', '#1c1c1e')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.bioColor === '#3a3a3c'} style="background:#3a3a3c" title="#3a3a3c" onclick={() => updateSetting('header.bioColor', '#3a3a3c')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.bioColor === '#48484a'} style="background:#48484a" title="#48484a" onclick={() => updateSetting('header.bioColor', '#48484a')}></button>
 												
 												{#if appearance.settings.header.bioColor}
 													<button class="color-preset-circle reset-circle" title="Reset về mặc định" onclick={() => updateSetting('header.bioColor', '')}>
@@ -1257,16 +1295,23 @@
 												<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
 													<div class="gradient-icon"></div>
 												</button>
-												<input type="color" class="hidden-native-picker" value={appearance.settings.header.socialIconsColor || '#8e8e93'} onchange={(e) => updateSetting('header.socialIconsColor', e.currentTarget.value)} />
+												<input type="color" class="hidden-native-picker" value={appearance.settings.header.socialIconsColor || appearance.settings.colors.textSecondary} onchange={(e) => updateSetting('header.socialIconsColor', e.currentTarget.value)} />
 												
-												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('header.socialIconsColor', '#000000')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('header.socialIconsColor', '#ffffff')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.socialIconsColor', '#8e8e93')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('header.socialIconsColor', '#ff3b30')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#ff9500'} style="background:#ff9500" title="#ff9500" onclick={() => updateSetting('header.socialIconsColor', '#ff9500')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#007aff'} style="background:#007aff" title="#007aff" onclick={() => updateSetting('header.socialIconsColor', '#007aff')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('header.socialIconsColor', '#5856d6')}></button>
-												<button class="color-preset-circle" class:active={(appearance.settings.header.socialIconsColor || '#8e8e93') === '#34c759'} style="background:#34c759" title="#34c759" onclick={() => updateSetting('header.socialIconsColor', '#34c759')}></button>
+												<!-- Theme default color button -->
+												{#if !appearance.settings.header.socialIconsColor}
+													<button class="color-preset-circle active" style="background:{appearance.settings.colors.textSecondary}" title="Theme default: {appearance.settings.colors.textSecondary}" onclick={() => updateSetting('header.socialIconsColor', '')}></button>
+												{:else}
+													<button class="color-preset-circle" style="background:{appearance.settings.colors.textSecondary}" title="Theme default: {appearance.settings.colors.textSecondary}" onclick={() => updateSetting('header.socialIconsColor', '')}></button>
+												{/if}
+												
+												<button class="color-preset-circle" class:active={appearance.settings.header.socialIconsColor === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('header.socialIconsColor', '#000000')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.socialIconsColor === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('header.socialIconsColor', '#ffffff')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.socialIconsColor === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('header.socialIconsColor', '#8e8e93')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.socialIconsColor === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('header.socialIconsColor', '#ff3b30')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.socialIconsColor === '#ff9500'} style="background:#ff9500" title="#ff9500" onclick={() => updateSetting('header.socialIconsColor', '#ff9500')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.socialIconsColor === '#007aff'} style="background:#007aff" title="#007aff" onclick={() => updateSetting('header.socialIconsColor', '#007aff')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.socialIconsColor === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('header.socialIconsColor', '#5856d6')}></button>
+												<button class="color-preset-circle" class:active={appearance.settings.header.socialIconsColor === '#34c759'} style="background:#34c759" title="#34c759" onclick={() => updateSetting('header.socialIconsColor', '#34c759')}></button>
 												
 												{#if appearance.settings.header.socialIconsColor}
 													<button class="color-preset-circle reset-circle" title="Reset về mặc định" onclick={() => updateSetting('header.socialIconsColor', '')}>
@@ -2738,6 +2783,234 @@
 
 	.remove-image:hover {
 		background: rgba(255, 59, 48, 0.9);
+	}
+
+	/* Avatar Shape Grid - Visual Preview Cards */
+	.setting-section {
+		margin-bottom: var(--space-5);
+	}
+
+	.avatar-shape-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 12px;
+		margin-top: var(--space-3);
+	}
+
+	.avatar-shape-card {
+		background: var(--color-bg);
+		border: 2px solid var(--color-separator);
+		border-radius: 12px;
+		padding: var(--space-4);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-3);
+	}
+
+	.avatar-shape-card:hover {
+		border-color: var(--color-primary);
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	}
+
+	.avatar-shape-card.active {
+		border-color: var(--color-primary);
+		border-width: 3px;
+		background: var(--color-primary-light);
+		box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+	}
+
+	.avatar-preview-wrapper {
+		width: 100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: var(--space-2);
+	}
+
+	.avatar-preview {
+		width: 80px;
+		height: 80px;
+		position: relative;
+		overflow: hidden;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		transition: all 0.2s ease;
+	}
+
+	.avatar-preview.circle {
+		border-radius: 50%;
+	}
+
+	.avatar-preview.rounded {
+		border-radius: 20px;
+	}
+
+	.avatar-preview.square {
+		border-radius: 8px;
+	}
+
+	.avatar-demo-image {
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		position: relative;
+	}
+
+	.avatar-demo-image::before {
+		content: '';
+		position: absolute;
+		width: 30px;
+		height: 30px;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 50%;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -60%);
+	}
+
+	.avatar-demo-image::after {
+		content: '';
+		position: absolute;
+		width: 50px;
+		height: 35px;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 50% 50% 0 0;
+		bottom: 0;
+		left: 50%;
+		transform: translateX(-50%);
+	}
+
+	.shape-label {
+		font-size: var(--text-sm);
+		font-weight: 600;
+		color: var(--color-text);
+		text-align: center;
+	}
+
+	.avatar-shape-card.active .shape-label {
+		color: var(--color-primary);
+	}
+
+	/* Avatar Size Options */
+	.avatar-size-options {
+		display: flex;
+		gap: 12px;
+		margin-top: var(--space-3);
+		justify-content: flex-start;
+	}
+
+	.avatar-size-btn {
+		background: var(--color-bg);
+		border: 2px solid var(--color-separator);
+		border-radius: 12px;
+		padding: var(--space-3);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-2);
+		min-width: 90px;
+	}
+
+	.avatar-size-btn:hover {
+		border-color: var(--color-primary);
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	}
+
+	.avatar-size-btn.active {
+		border-color: var(--color-primary);
+		border-width: 3px;
+		background: var(--color-primary-light);
+		box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+	}
+
+	.size-preview {
+		position: relative;
+		overflow: hidden;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+		transition: all 0.2s ease;
+	}
+
+	.size-preview.s {
+		width: 40px;
+		height: 40px;
+	}
+
+	.size-preview.m {
+		width: 56px;
+		height: 56px;
+	}
+
+	.size-preview.l {
+		width: 72px;
+		height: 72px;
+	}
+
+	.size-preview.circle {
+		border-radius: 50%;
+	}
+
+	.size-preview.rounded {
+		border-radius: 16px;
+	}
+
+	.size-preview.square {
+		border-radius: 6px;
+	}
+
+	.size-demo-image {
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		position: relative;
+	}
+
+	.size-demo-image::before {
+		content: '';
+		position: absolute;
+		width: 35%;
+		height: 35%;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 50%;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -60%);
+	}
+
+	.size-demo-image::after {
+		content: '';
+		position: absolute;
+		width: 60%;
+		height: 40%;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 50% 50% 0 0;
+		bottom: 0;
+		left: 50%;
+		transform: translateX(-50%);
+	}
+
+	.size-label {
+		font-size: var(--text-sm);
+		font-weight: 600;
+		color: var(--color-text);
+		text-align: center;
+	}
+
+	.avatar-size-btn.active .size-label {
+		color: var(--color-primary);
 	}
 </style>
 
