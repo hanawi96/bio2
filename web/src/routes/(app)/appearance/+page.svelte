@@ -178,6 +178,59 @@
 		'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
 	];
 
+	// Helper: normalize color to hex format for comparison
+	// Converts rgba(255, 192, 203, 0.75) → #ffc0cb
+	// Keeps hex colors as-is
+	function normalizeColor(color: string | undefined): string {
+		if (!color) return '#000000';
+		
+		// Already hex format
+		if (color.startsWith('#')) {
+			return color.toLowerCase();
+		}
+		
+		// Parse rgba/rgb format
+		const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
+		if (rgbaMatch) {
+			const r = parseInt(rgbaMatch[1]);
+			const g = parseInt(rgbaMatch[2]);
+			const b = parseInt(rgbaMatch[3]);
+			return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+		}
+		
+		// Fallback
+		return color.toLowerCase();
+	}
+
+	// Helper: get actual block background color (same logic as getLinkBg but return color value)
+	function getActualBlockBgColor(): string {
+		if (!appearance.settings.links.showBackground) {
+			return 'transparent';
+		}
+		
+		const s = appearance.settings.links.style;
+		const colors = appearance.settings.colors;
+		
+		// Return the actual color based on style
+		if (s === 'filled') return colors.primary;
+		if (s === 'soft') return colors.primary; // soft uses primary with opacity, but we show primary
+		return colors.cardBackground;
+	}
+
+	// Helper: get actual block text color (same logic as getLinkColor but return color value)
+	function getActualBlockTextColor(): string {
+		// Nếu có custom textColor, dùng nó
+		if (appearance.settings.links.textColor) {
+			return appearance.settings.links.textColor;
+		}
+		
+		// Auto based on style
+		const s = appearance.settings.links.style;
+		if (s === 'filled') return '#ffffff';
+		if (s === 'soft' || s === 'outline') return appearance.settings.colors.primary;
+		return appearance.settings.colors.text;
+	}
+
 	// Lấy màu preview cho theme card
 	function getPresetColor(preset: any): string {
 		const config = preset.config;
@@ -400,19 +453,109 @@
 		return `background: transparent; color: ${iconColor};`;
 	}
 
+	// Helper: parse gradient string to extract type, angle, and colors
+	// Example: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" → { type: 'linear', angle: 135, fromColor: '#667eea', toColor: '#764ba2' }
+	// Also handles 3+ colors: "linear-gradient(135deg, #fce7f3 0%, #dbeafe 50%, #fef3c7 100%)" → takes first and last
+	function parseGradientString(gradientStr: string): { type: 'linear' | 'radial'; angle: number; fromColor: string; toColor: string } | null {
+		console.log('[parseGradientString] Input:', gradientStr);
+		
+		if (!gradientStr) {
+			console.log('[parseGradientString] Empty string, returning null');
+			return null;
+		}
+		
+		// Parse linear gradient - match angle and all color stops
+		const linearMatch = gradientStr.match(/linear-gradient\((\d+)deg,\s*(.+)\)/);
+		if (linearMatch) {
+			const angle = parseInt(linearMatch[1]);
+			const colorStops = linearMatch[2];
+			
+			// Extract all colors from color stops
+			const colorMatches = colorStops.match(/([#\w]+)\s+[\d.]+%/g);
+			if (colorMatches && colorMatches.length >= 2) {
+				// Extract just the color hex from first and last stops
+				const firstColor = colorMatches[0].match(/([#\w]+)/)?.[1];
+				const lastColor = colorMatches[colorMatches.length - 1].match(/([#\w]+)/)?.[1];
+				
+				if (firstColor && lastColor) {
+					const result = {
+						type: 'linear' as const,
+						angle: angle,
+						fromColor: firstColor,
+						toColor: lastColor
+					};
+					console.log('[parseGradientString] Linear match found:', result);
+					return result;
+				}
+			}
+		}
+		
+		// Parse radial gradient
+		const radialMatch = gradientStr.match(/radial-gradient\(circle,\s*(.+)\)/);
+		if (radialMatch) {
+			const colorStops = radialMatch[1];
+			const colorMatches = colorStops.match(/([#\w]+)\s+[\d.]+%/g);
+			
+			if (colorMatches && colorMatches.length >= 2) {
+				const firstColor = colorMatches[0].match(/([#\w]+)/)?.[1];
+				const lastColor = colorMatches[colorMatches.length - 1].match(/([#\w]+)/)?.[1];
+				
+				if (firstColor && lastColor) {
+					const result = {
+						type: 'radial' as const,
+						angle: 0,
+						fromColor: firstColor,
+						toColor: lastColor
+					};
+					console.log('[parseGradientString] Radial match found:', result);
+					return result;
+				}
+			}
+		}
+		
+		console.log('[parseGradientString] No match found, returning null');
+		return null;
+	}
+
 	// Custom Gradient Functions
 	function openCustomGradientBuilder() {
+		console.log('[openCustomGradientBuilder] Called');
 		const bg = appearance.settings.background;
+		console.log('[openCustomGradientBuilder] Background settings:', {
+			type: bg.type,
+			gradient: bg.gradient,
+			customGradient: bg.customGradient
+		});
+		
 		if (bg.customGradient?.enabled) {
-			// Load existing custom gradient
+			// Load existing custom gradient config
+			console.log('[openCustomGradientBuilder] Loading from customGradient config');
 			customGradientDraft = {
 				type: bg.customGradient.type,
 				angle: bg.customGradient.angle,
 				fromColor: bg.customGradient.fromColor,
 				toColor: bg.customGradient.toColor
 			};
+		} else if (bg.gradient) {
+			// Try to parse current gradient string
+			console.log('[openCustomGradientBuilder] Trying to parse gradient string');
+			const parsed = parseGradientString(bg.gradient);
+			if (parsed) {
+				console.log('[openCustomGradientBuilder] Using parsed gradient');
+				customGradientDraft = parsed;
+			} else {
+				// Use default values if parsing fails
+				console.log('[openCustomGradientBuilder] Parsing failed, using defaults');
+				customGradientDraft = {
+					type: 'linear',
+					angle: 135,
+					fromColor: '#667eea',
+					toColor: '#764ba2'
+				};
+			}
 		} else {
 			// Use default values
+			console.log('[openCustomGradientBuilder] No gradient found, using defaults');
 			customGradientDraft = {
 				type: 'linear',
 				angle: 135,
@@ -420,6 +563,8 @@
 				toColor: '#764ba2'
 			};
 		}
+		
+		console.log('[openCustomGradientBuilder] Final customGradientDraft:', customGradientDraft);
 		showCustomGradientBuilder = true;
 	}
 
@@ -649,34 +794,39 @@
 							<div class="card-header"><h2>Gradient</h2></div>
 							<div class="card-body">
 								<!-- Gradient Presets Grid -->
-								<div class="gradient-presets-grid">
-									{#each gradientPresets as g, i}
+								{#if true}
+									{@const currentGradient = appearance.settings.background.gradient}
+									{@const hasCurrentInPresets = gradientPresets.includes(currentGradient)}
+									{@const isCustomEnabled = appearance.settings.background.customGradient?.enabled}
+									<div class="gradient-presets-grid">
+										{#each gradientPresets as g, i}
+											<button 
+												class="preview-item" 
+												style="background:{g}" 
+												class:active={currentGradient === g && !isCustomEnabled}
+												title="Gradient {i+1}" 
+												onclick={() => selectPresetGradient(g)}
+											></button>
+										{/each}
+										
+										<!-- Custom Gradient Button -->
 										<button 
-											class="preview-item" 
-											style="background:{g}" 
-											class:active={appearance.settings.background.gradient === g && !appearance.settings.background.customGradient?.enabled}
-											title="Gradient {i+1}" 
-											onclick={() => selectPresetGradient(g)}
-										></button>
-									{/each}
-									
-									<!-- Custom Gradient Button -->
-									<button 
-										class="preview-item custom-gradient-btn"
-										class:active={appearance.settings.background.customGradient?.enabled}
-										onclick={openCustomGradientBuilder}
-										title="Custom Gradient"
-									>
-										{#if appearance.settings.background.customGradient?.enabled}
-											<div class="custom-preview" style="background:{appearance.settings.background.gradient}"></div>
-										{:else}
-											<div class="custom-icon">
-												<Settings size={20} />
-												<span class="text-xs">Custom</span>
-											</div>
-										{/if}
-									</button>
-								</div>
+											class="preview-item custom-gradient-btn"
+											class:active={isCustomEnabled || (!hasCurrentInPresets && currentGradient)}
+											onclick={openCustomGradientBuilder}
+											title="Custom Gradient"
+										>
+											{#if isCustomEnabled || (!hasCurrentInPresets && currentGradient)}
+												<div class="custom-preview" style="background:{currentGradient}"></div>
+											{:else}
+												<div class="custom-icon">
+													<Settings size={20} />
+													<span class="text-xs">Custom</span>
+												</div>
+											{/if}
+										</button>
+									</div>
+								{/if}
 								
 								<!-- Custom Gradient Builder -->
 								{#if showCustomGradientBuilder}
@@ -1177,45 +1327,150 @@
 									<!-- Background Color -->
 									<div class="color-setting-group">
 										<label class="setting-label">Background</label>
-										<div class="color-presets-row">
-											<!-- Color Picker Button -->
-											<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
-												<div class="gradient-icon"></div>
-											</button>
-											<input type="color" class="hidden-native-picker" value={appearance.settings.colors.primary} onchange={(e) => updateSetting('colors.primary', e.currentTarget.value)} />
+										{#if true}
+											{@const currentBgColor = normalizeColor(getActualBlockBgColor())}
+											{@const staticPresets = ['#ffffff', '#f9fafb', '#fce7f3', '#dbeafe', '#fef3c7', '#000000', '#1c1c1e', '#2c2c2e']}
+											{@const hasCurrentInPresets = staticPresets.includes(currentBgColor)}
+											<div class="color-presets-row">
+												<!-- Color Picker Button -->
+												<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
+													<div class="gradient-icon"></div>
+												</button>
+												<input type="color" class="hidden-native-picker" value={getActualBlockBgColor()} onchange={(e) => {
+													const style = appearance.settings.links.style;
+													if (style === 'filled' || style === 'soft') {
+														updateSetting('colors.primary', e.currentTarget.value);
+												} else {
+													updateSetting('colors.cardBackground', e.currentTarget.value);
+												}
+											}} />
 											
-											<!-- Preset Colors -->
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('colors.primary', '#000000')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('colors.primary', '#ffffff')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('colors.primary', '#8e8e93')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('colors.primary', '#ff3b30')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ff6b6b'} style="background:#ff6b6b" title="#ff6b6b" onclick={() => updateSetting('colors.primary', '#ff6b6b')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ffa5a5'} style="background:#ffa5a5" title="#ffa5a5" onclick={() => updateSetting('colors.primary', '#ffa5a5')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#a855f7'} style="background:#a855f7" title="#a855f7" onclick={() => updateSetting('colors.primary', '#a855f7')}></button>
-											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('colors.primary', '#5856d6')}></button>
+											<!-- Current Color Button (if not in presets) -->
+											{#if !hasCurrentInPresets && currentBgColor !== 'transparent'}
+												<button 
+													class="color-preset-circle active current-color" 
+													style="background:{currentBgColor}; {currentBgColor === '#ffffff' ? 'border: 2px solid #e5e5ea' : ''}"
+													title="Current: {currentBgColor}"
+													onclick={() => {
+														const style = appearance.settings.links.style;
+														if (style === 'filled' || style === 'soft') {
+															updateSetting('colors.primary', currentBgColor);
+														} else {
+															updateSetting('colors.cardBackground', currentBgColor);
+														}
+													}}
+												>
+													<span class="current-indicator">●</span>
+												</button>
+											{/if}
+											
+											<!-- Static Preset Colors -->
+											<button class="color-preset-circle" class:active={currentBgColor === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => {
+												const style = appearance.settings.links.style;
+												if (style === 'filled' || style === 'soft') {
+													updateSetting('colors.primary', '#ffffff');
+												} else {
+													updateSetting('colors.cardBackground', '#ffffff');
+												}
+											}}></button>
+											<button class="color-preset-circle" class:active={currentBgColor === '#f9fafb'} style="background:#f9fafb" title="#f9fafb" onclick={() => {
+												const style = appearance.settings.links.style;
+												if (style === 'filled' || style === 'soft') {
+													updateSetting('colors.primary', '#f9fafb');
+												} else {
+													updateSetting('colors.cardBackground', '#f9fafb');
+												}
+											}}></button>
+											<button class="color-preset-circle" class:active={currentBgColor === '#fce7f3'} style="background:#fce7f3" title="#fce7f3 (pink)" onclick={() => {
+												const style = appearance.settings.links.style;
+												if (style === 'filled' || style === 'soft') {
+													updateSetting('colors.primary', '#fce7f3');
+												} else {
+													updateSetting('colors.cardBackground', '#fce7f3');
+												}
+											}}></button>
+											<button class="color-preset-circle" class:active={currentBgColor === '#dbeafe'} style="background:#dbeafe" title="#dbeafe (blue)" onclick={() => {
+												const style = appearance.settings.links.style;
+												if (style === 'filled' || style === 'soft') {
+													updateSetting('colors.primary', '#dbeafe');
+												} else {
+													updateSetting('colors.cardBackground', '#dbeafe');
+												}
+											}}></button>
+											<button class="color-preset-circle" class:active={currentBgColor === '#fef3c7'} style="background:#fef3c7" title="#fef3c7 (yellow)" onclick={() => {
+												const style = appearance.settings.links.style;
+												if (style === 'filled' || style === 'soft') {
+													updateSetting('colors.primary', '#fef3c7');
+												} else {
+													updateSetting('colors.cardBackground', '#fef3c7');
+												}
+											}}></button>
+											<button class="color-preset-circle" class:active={currentBgColor === '#000000'} style="background:#000000" title="#000000" onclick={() => {
+												const style = appearance.settings.links.style;
+												if (style === 'filled' || style === 'soft') {
+													updateSetting('colors.primary', '#000000');
+												} else {
+													updateSetting('colors.cardBackground', '#000000');
+												}
+											}}></button>
+											<button class="color-preset-circle" class:active={currentBgColor === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => {
+												const style = appearance.settings.links.style;
+												if (style === 'filled' || style === 'soft') {
+													updateSetting('colors.primary', '#1c1c1e');
+												} else {
+													updateSetting('colors.cardBackground', '#1c1c1e');
+												}
+											}}></button>
+											<button class="color-preset-circle" class:active={currentBgColor === '#2c2c2e'} style="background:#2c2c2e" title="#2c2c2e" onclick={() => {
+												const style = appearance.settings.links.style;
+												if (style === 'filled' || style === 'soft') {
+													updateSetting('colors.primary', '#2c2c2e');
+												} else {
+													updateSetting('colors.cardBackground', '#2c2c2e');
+												}
+											}}></button>
 										</div>
+										{/if}
 									</div>
 
 									<!-- Text Color -->
 									<div class="color-setting-group">
 										<label class="setting-label">Text</label>
-										<div class="color-presets-row">
-											<!-- Color Picker Button -->
-											<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
-												<div class="gradient-icon"></div>
-											</button>
-											<input type="color" class="hidden-native-picker" value={appearance.settings.links.textColor || getLinkColor()} onchange={(e) => updateSetting('links.textColor', e.currentTarget.value)} />
-											
-											<!-- Preset Colors -->
-											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('links.textColor', '#000000')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('links.textColor', '#ffffff')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('links.textColor', '#8e8e93')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('links.textColor', '#ff3b30')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ff6b6b'} style="background:#ff6b6b" title="#ff6b6b" onclick={() => updateSetting('links.textColor', '#ff6b6b')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ffa5a5'} style="background:#ffa5a5" title="#ffa5a5" onclick={() => updateSetting('links.textColor', '#ffa5a5')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#a855f7'} style="background:#a855f7" title="#a855f7" onclick={() => updateSetting('links.textColor', '#a855f7')}></button>
-											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('links.textColor', '#5856d6')}></button>
-										</div>
+										{#if true}
+											{@const currentTextColor = normalizeColor(getActualBlockTextColor())}
+											{@const staticPresets = ['#000000', '#ffffff', '#1c1c1e', '#8e8e93', '#ff3b30', '#ff6b6b', '#ffa5a5', '#a855f7', '#5856d6']}
+											{@const hasCurrentInPresets = staticPresets.includes(currentTextColor)}
+											<div class="color-presets-row">
+												<!-- Color Picker Button -->
+												<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
+													<div class="gradient-icon"></div>
+												</button>
+												<input type="color" class="hidden-native-picker" value={getActualBlockTextColor()} onchange={(e) => updateSetting('links.textColor', e.currentTarget.value)} />
+												
+												<!-- Current Color Button (if not in presets) -->
+												{#if !hasCurrentInPresets}
+													<button 
+														class="color-preset-circle active current-color" 
+														style="background:{currentTextColor}; {currentTextColor === '#ffffff' ? 'border: 2px solid #e5e5ea' : ''}"
+														title="Current: {currentTextColor}"
+														onclick={() => updateSetting('links.textColor', currentTextColor)}
+													>
+														<span class="current-indicator">●</span>
+													</button>
+												{/if}
+												
+												<!-- Static Preset Colors -->
+												<button class="color-preset-circle" class:active={currentTextColor === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('links.textColor', '#000000')}></button>
+												<button class="color-preset-circle" class:active={currentTextColor === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('links.textColor', '#ffffff')}></button>
+												<button class="color-preset-circle" class:active={currentTextColor === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => updateSetting('links.textColor', '#1c1c1e')}></button>
+												<button class="color-preset-circle" class:active={currentTextColor === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('links.textColor', '#8e8e93')}></button>
+												<button class="color-preset-circle" class:active={currentTextColor === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('links.textColor', '#ff3b30')}></button>
+												<button class="color-preset-circle" class:active={currentTextColor === '#ff6b6b'} style="background:#ff6b6b" title="#ff6b6b" onclick={() => updateSetting('links.textColor', '#ff6b6b')}></button>
+												<button class="color-preset-circle" class:active={currentTextColor === '#ffa5a5'} style="background:#ffa5a5" title="#ffa5a5" onclick={() => updateSetting('links.textColor', '#ffa5a5')}></button>
+												<button class="color-preset-circle" class:active={currentTextColor === '#a855f7'} style="background:#a855f7" title="#a855f7" onclick={() => updateSetting('links.textColor', '#a855f7')}></button>
+												<button class="color-preset-circle" class:active={currentTextColor === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('links.textColor', '#5856d6')}></button>
+											</div>
+										{/if}
 									</div>
 
 								{:else if activeBlockTab === 'advanced'}
@@ -1283,6 +1538,7 @@
 												<input 
 													type="range" 
 													class="slider" 
+													style="background: white;"
 													min="1" 
 													max="8" 
 													step="1" 
@@ -1363,6 +1619,7 @@
 												<input 
 													type="range" 
 													class="slider" 
+													style="background: white;"
 													min="0" 
 													max="32" 
 													step="2" 
@@ -1380,6 +1637,7 @@
 												<input 
 													type="range" 
 													class="slider" 
+													style="background: white;"
 													min="-16" 
 													max="16" 
 													step="1" 
@@ -1397,6 +1655,7 @@
 												<input 
 													type="range" 
 													class="slider" 
+													style="background: white;"
 													min="-16" 
 													max="16" 
 													step="1" 
@@ -1414,6 +1673,7 @@
 												<input 
 													type="range" 
 													class="slider" 
+													style="background: white;"
 													min="0" 
 													max="100" 
 													step="5" 
@@ -1998,6 +2258,142 @@
 		border-color: var(--color-primary);
 		box-shadow: 0 0 0 2px var(--color-primary-light);
 		transform: scale(1.05);
+		position: relative;
+	}
+	
+	/* Add indicator to all active preset buttons */
+	.color-preset-circle.active::after {
+		content: '●';
+		position: absolute;
+		top: -6px;
+		right: -6px;
+		width: 16px;
+		height: 16px;
+		background: var(--color-primary);
+		color: white;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 10px;
+		line-height: 1;
+		border: 2px solid white;
+		box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+	}
+	
+	.color-preset-circle.current-color {
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 3px var(--color-primary-light);
+	}
+	
+	.current-indicator {
+		position: absolute;
+		top: -6px;
+		right: -6px;
+		width: 16px;
+		height: 16px;
+		background: var(--color-primary);
+		color: white;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 10px;
+		line-height: 1;
+		border: 2px solid white;
+		box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+	}
+	
+	/* Gradient preview items */
+	.preview-item {
+		position: relative;
+	}
+	
+	.preview-item.active::after {
+		content: '●';
+		position: absolute;
+		top: -6px;
+		right: -6px;
+		width: 16px;
+		height: 16px;
+		background: var(--color-primary);
+		color: white;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 10px;
+		line-height: 1;
+		border: 2px solid white;
+		box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+		z-index: 1;
+	}
+	
+	/* iOS-style Gradient Presets Grid */
+	.gradient-presets-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+		gap: 12px;
+		margin-bottom: var(--space-4);
+	}
+	
+	.gradient-presets-grid .preview-item {
+		height: 120px;
+		border-radius: 20px;
+		border: none;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+		position: relative;
+		overflow: hidden;
+	}
+	
+	.gradient-presets-grid .preview-item:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+	}
+	
+	.gradient-presets-grid .preview-item.active {
+		box-shadow: 0 0 0 4px var(--color-primary), 0 4px 20px rgba(0,0,0,0.2);
+		transform: scale(1.02);
+	}
+	
+	.gradient-presets-grid .custom-gradient-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--color-bg);
+		border: 2px dashed var(--color-separator);
+	}
+	
+	.gradient-presets-grid .custom-gradient-btn:hover {
+		border-color: var(--color-primary);
+		background: var(--color-bg-secondary);
+	}
+	
+	.gradient-presets-grid .custom-gradient-btn.active {
+		border-style: solid;
+		border-color: var(--color-primary);
+		border-width: 3px;
+		box-shadow: 0 0 0 1px var(--color-primary-light);
+	}
+	
+	.gradient-presets-grid .custom-preview {
+		width: 100%;
+		height: 100%;
+		border-radius: 17px;
+	}
+	
+	.gradient-presets-grid .custom-icon {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		color: var(--color-text-secondary);
+	}
+	
+	.gradient-presets-grid .custom-gradient-btn:hover .custom-icon {
+		color: var(--color-primary);
 	}
 	
 	.color-preset-circle.gradient-picker {

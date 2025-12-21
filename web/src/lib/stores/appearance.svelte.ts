@@ -128,6 +128,52 @@ function parseSize(value: any): number | undefined {
 	return undefined;
 }
 
+// Helper: parse border string to extract width and color
+// Example: "1px solid #e5e5ea" -> { width: 1, color: '#e5e5ea' }
+function parseBorder(borderValue: string | undefined): { width: number; color: string } | null {
+	if (!borderValue || borderValue === 'none') return null;
+	
+	// Match pattern: "1px solid #e5e5ea" or "2px solid rgba(0,0,0,0.1)"
+	const match = borderValue.match(/(\d+)px\s+solid\s+(#[0-9a-fA-F]{6}|rgba?\([^)]+\))/);
+	if (match) {
+		return {
+			width: parseInt(match[1]),
+			color: match[2].startsWith('#') ? match[2] : '#e5e5ea' // fallback for rgba
+		};
+	}
+	return null;
+}
+
+// Helper: convert shadow level to custom shadow values
+function shadowLevelToCustom(level: string): { blur: number; offsetX: number; offsetY: number; opacity: number } | null {
+	const shadowMap: Record<string, { blur: number; offsetX: number; offsetY: number; opacity: number }> = {
+		'sm': { blur: 2, offsetX: 0, offsetY: 1, opacity: 0.08 },
+		'md': { blur: 8, offsetX: 0, offsetY: 2, opacity: 0.12 },
+		'lg': { blur: 16, offsetX: 0, offsetY: 4, opacity: 0.16 }
+	};
+	
+	return shadowMap[level] || null;
+}
+
+// Helper: parse shadow CSS string to extract values
+// Example: "0 2px 8px rgba(0,0,0,0.12)" -> { blur: 8, offsetX: 0, offsetY: 2, opacity: 0.12 }
+function parseShadow(shadowValue: string | undefined): { blur: number; offsetX: number; offsetY: number; opacity: number; color: string } | null {
+	if (!shadowValue || shadowValue === 'none') return null;
+	
+	// Match pattern: "0px 2px 8px rgba(0,0,0,0.12)"
+	const match = shadowValue.match(/([-\d]+)px\s+([-\d]+)px\s+([-\d]+)px\s+rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+	if (match) {
+		return {
+			offsetX: parseInt(match[1]),
+			offsetY: parseInt(match[2]),
+			blur: parseInt(match[3]),
+			color: `#${parseInt(match[4]).toString(16).padStart(2, '0')}${parseInt(match[5]).toString(16).padStart(2, '0')}${parseInt(match[6]).toString(16).padStart(2, '0')}`,
+			opacity: parseFloat(match[7])
+		};
+	}
+	return null;
+}
+
 // Helper: map shadow string to level
 function mapShadowToLevel(shadow: string | undefined): 'none' | 'sm' | 'md' | 'lg' {
 	if (!shadow || shadow === 'none') return 'none';
@@ -223,6 +269,56 @@ function mapPresetToSettings(presetConfig: Record<string, any>): Partial<Appeara
 		if (base.color && result.colors) {
 			// Nếu link có màu text riêng, có thể dùng cho text chính
 			// Nhưng thường ta giữ nguyên từ semantic
+		}
+		
+		// ===== DETECTION LOGIC: Auto-enable toggles based on preset values =====
+		
+		// 1. SHADOW DETECTION
+		if (base.shadow) {
+			const shadowValue = base.shadow;
+			
+			// Nếu có shadow string (CSS format) → parse và enable
+			const parsedShadow = parseShadow(shadowValue);
+			if (parsedShadow) {
+				result.links.showShadow = true;
+				result.links.shadowBlur = parsedShadow.blur;
+				result.links.shadowOffsetX = parsedShadow.offsetX;
+				result.links.shadowOffsetY = parsedShadow.offsetY;
+				result.links.shadowColor = parsedShadow.color;
+				result.links.shadowOpacity = parsedShadow.opacity;
+			} else {
+				// Nếu là shadow level ('sm', 'md', 'lg') → convert và enable
+				const shadowLevel = mapShadowToLevel(shadowValue);
+				if (shadowLevel && shadowLevel !== 'none') {
+					const customShadow = shadowLevelToCustom(shadowLevel);
+					if (customShadow) {
+						result.links.showShadow = true;
+						result.links.shadowBlur = customShadow.blur;
+						result.links.shadowOffsetX = customShadow.offsetX;
+						result.links.shadowOffsetY = customShadow.offsetY;
+						result.links.shadowOpacity = customShadow.opacity;
+						result.links.shadowColor = '#000000';
+					}
+				}
+			}
+		}
+		
+		// 2. BORDER DETECTION
+		if (base.border) {
+			const parsedBorder = parseBorder(base.border);
+			if (parsedBorder) {
+				result.links.showBorder = true;
+				result.links.borderWidth = parsedBorder.width;
+				result.links.borderColor = parsedBorder.color;
+			}
+		}
+		
+		// 3. BACKGROUND DETECTION
+		if (base.background) {
+			// Nếu background không phải transparent hoặc none → enable
+			if (base.background !== 'transparent' && base.background !== 'none') {
+				result.links.showBackground = true;
+			}
 		}
 	}
 
