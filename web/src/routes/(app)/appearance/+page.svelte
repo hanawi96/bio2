@@ -13,6 +13,7 @@
 	let bioData = $state<any>(null);
 	let activeSection = $state<string>('theme');
 	let activeHeaderTab = $state<string>('avatar'); // Sub-tab for header settings
+	let activeBlockTab = $state<string>('basic'); // Sub-tab for block settings: 'basic' or 'advanced'
 	let showDebug = $state(false);
 	
 	// Custom Gradient Builder State
@@ -153,7 +154,6 @@
 	const fontSizes = [{ value: 'S', label: 'S' }, { value: 'M', label: 'M' }, { value: 'L', label: 'L' }, { value: 'XL', label: 'XL' }];
 	const alignOptions = [{ value: 'left', icon: 'left' }, { value: 'center', icon: 'center' }, { value: 'right', icon: 'right' }];
 	const linkStyles = [{ value: 'filled', label: 'Filled' }, { value: 'outline', label: 'Outline' }, { value: 'soft', label: 'Soft' }, { value: 'ghost', label: 'Ghost' }];
-	const shadowOptions = [{ value: 'none', label: 'None' }, { value: 'sm', label: 'S' }, { value: 'md', label: 'M' }, { value: 'lg', label: 'L' }];
 	const headerStyles = [{ value: 'classic', label: 'Classic' }, { value: 'minimal', label: 'Minimal' }];
 	const avatarSizes = [{ value: 'S', label: 'S' }, { value: 'M', label: 'M' }, { value: 'L', label: 'L' }];
 	const avatarShapes = [{ value: 'circle', label: 'Circle' }, { value: 'rounded', label: 'Rounded' }, { value: 'square', label: 'Square' }];
@@ -218,6 +218,23 @@
 	}
 
 	function getShadow(): string {
+		// Nếu bật custom shadow, dùng custom values
+		if (appearance.settings.links.showShadow) {
+			const blur = appearance.settings.links.shadowBlur || 8;
+			const offsetX = appearance.settings.links.shadowOffsetX || 0;
+			const offsetY = appearance.settings.links.shadowOffsetY || 2;
+			const color = appearance.settings.links.shadowColor || '#000000';
+			const opacity = appearance.settings.links.shadowOpacity ?? 0.12;
+			
+			// Convert hex color to rgba with opacity
+			const r = parseInt(color.slice(1, 3), 16);
+			const g = parseInt(color.slice(3, 5), 16);
+			const b = parseInt(color.slice(5, 7), 16);
+			
+			return `${offsetX}px ${offsetY}px ${blur}px rgba(${r}, ${g}, ${b}, ${opacity})`;
+		}
+		
+		// Fallback: dùng preset shadow levels (backward compatibility)
 		return {
 			none: 'none',
 			sm: '0 1px 2px rgba(0,0,0,0.08)',
@@ -227,6 +244,11 @@
 	}
 
 	function getLinkBg(): string {
+		// Nếu tắt background, return transparent
+		if (!appearance.settings.links.showBackground) {
+			return 'transparent';
+		}
+		
 		const s = appearance.settings.links.style;
 		const colors = appearance.settings.colors;
 		if (s === 'filled') return colors.primary;
@@ -248,9 +270,18 @@
 	}
 
 	function getLinkBorder(): string {
+		// Nếu bật showBorder, dùng custom border
+		if (appearance.settings.links.showBorder) {
+			const width = appearance.settings.links.borderWidth || 1;
+			const color = appearance.settings.links.borderColor || '#e5e5ea';
+			return `${width}px solid ${color}`;
+		}
+		
+		// Fallback: nếu style là outline, dùng primary color
 		if (appearance.settings.links.style === 'outline') {
 			return `1px solid ${appearance.settings.colors.primary}`;
 		}
+		
 		return 'none';
 	}
 
@@ -1106,6 +1137,7 @@
 				{/if}
 
 				{#if activeSection === 'blocks'}
+					<!-- Block Style Selection -->
 					<div class="card">
 						<div class="card-header"><h2>Block Style</h2></div>
 						<div class="card-body">
@@ -1120,65 +1152,279 @@
 						</div>
 					</div>
 
-					<!-- Link Block Colors -->
+					<!-- Block Settings with Tabs -->
 					<div class="card">
-						<div class="card-header"><h2>Block Colors</h2></div>
+						<div class="card-header"><h2>Cài đặt Block</h2></div>
 						<div class="card-body">
-							<p class="form-hint" style="margin-bottom: var(--space-4)">Tùy chỉnh màu sắc cho các block link</p>
-							
-							<!-- Background Color -->
-							<div class="color-setting-group">
-								<label class="setting-label">Background</label>
-								<div class="color-presets-row">
-									<!-- Color Picker Button -->
-									<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
-										<div class="gradient-icon"></div>
-									</button>
-									<input type="color" class="hidden-native-picker" value={appearance.settings.colors.primary} onchange={(e) => updateSetting('colors.primary', e.currentTarget.value)} />
-									
-									<!-- Preset Colors -->
-									<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('colors.primary', '#000000')}></button>
-									<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('colors.primary', '#ffffff')}></button>
-									<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('colors.primary', '#8e8e93')}></button>
-									<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('colors.primary', '#ff3b30')}></button>
-									<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ff6b6b'} style="background:#ff6b6b" title="#ff6b6b" onclick={() => updateSetting('colors.primary', '#ff6b6b')}></button>
-									<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ffa5a5'} style="background:#ffa5a5" title="#ffa5a5" onclick={() => updateSetting('colors.primary', '#ffa5a5')}></button>
-									<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#a855f7'} style="background:#a855f7" title="#a855f7" onclick={() => updateSetting('colors.primary', '#a855f7')}></button>
-									<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('colors.primary', '#5856d6')}></button>
-								</div>
+							<!-- Sub-tabs Navigation -->
+							<div class="sub-tabs">
+								<button class="sub-tab" class:active={activeBlockTab === 'basic'} onclick={() => activeBlockTab = 'basic'}>
+									<Droplets size={16} />
+									<span>Cơ bản</span>
+								</button>
+								<button class="sub-tab" class:active={activeBlockTab === 'advanced'} onclick={() => activeBlockTab = 'advanced'}>
+									<Settings size={16} />
+									<span>Tùy chỉnh nâng cao</span>
+								</button>
 							</div>
 
-							<!-- Text Color -->
-							<div class="color-setting-group">
-								<label class="setting-label">Text</label>
-								<div class="color-presets-row">
-									<!-- Color Picker Button -->
-									<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
-										<div class="gradient-icon"></div>
-									</button>
-									<input type="color" class="hidden-native-picker" value={appearance.settings.links.textColor || getLinkColor()} onchange={(e) => updateSetting('links.textColor', e.currentTarget.value)} />
+							<!-- Tab Content -->
+							<div class="sub-tab-content">
+								{#if activeBlockTab === 'basic'}
+									<!-- Block Colors - Basic Tab -->
+									<p class="form-hint" style="margin-bottom: var(--space-4)">Tùy chỉnh màu sắc cho các block link</p>
 									
-									<!-- Preset Colors -->
-									<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('links.textColor', '#000000')}></button>
-									<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('links.textColor', '#ffffff')}></button>
-									<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('links.textColor', '#8e8e93')}></button>
-									<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('links.textColor', '#ff3b30')}></button>
-									<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ff6b6b'} style="background:#ff6b6b" title="#ff6b6b" onclick={() => updateSetting('links.textColor', '#ff6b6b')}></button>
-									<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ffa5a5'} style="background:#ffa5a5" title="#ffa5a5" onclick={() => updateSetting('links.textColor', '#ffa5a5')}></button>
-									<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#a855f7'} style="background:#a855f7" title="#a855f7" onclick={() => updateSetting('links.textColor', '#a855f7')}></button>
-									<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('links.textColor', '#5856d6')}></button>
-								</div>
-							</div>
-						</div>
-					</div>
+									<!-- Background Color -->
+									<div class="color-setting-group">
+										<label class="setting-label">Background</label>
+										<div class="color-presets-row">
+											<!-- Color Picker Button -->
+											<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
+												<div class="gradient-icon"></div>
+											</button>
+											<input type="color" class="hidden-native-picker" value={appearance.settings.colors.primary} onchange={(e) => updateSetting('colors.primary', e.currentTarget.value)} />
+											
+											<!-- Preset Colors -->
+											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('colors.primary', '#000000')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('colors.primary', '#ffffff')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('colors.primary', '#8e8e93')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('colors.primary', '#ff3b30')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ff6b6b'} style="background:#ff6b6b" title="#ff6b6b" onclick={() => updateSetting('colors.primary', '#ff6b6b')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#ffa5a5'} style="background:#ffa5a5" title="#ffa5a5" onclick={() => updateSetting('colors.primary', '#ffa5a5')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#a855f7'} style="background:#a855f7" title="#a855f7" onclick={() => updateSetting('colors.primary', '#a855f7')}></button>
+											<button class="color-preset-circle" class:active={appearance.settings.colors.primary === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('colors.primary', '#5856d6')}></button>
+										</div>
+									</div>
 
-					<div class="card">
-						<div class="card-header"><h2>Appearance</h2></div>
-						<div class="card-body">
-							<div class="slider-group"><div class="slider-header"><span class="slider-label">Border Radius</span><span class="slider-value">{appearance.settings.links.borderRadius}px</span></div><input type="range" class="slider" min="0" max="24" step="2" value={appearance.settings.links.borderRadius} oninput={(e) => updateSetting('links.borderRadius', +e.currentTarget.value)}/></div>
-							<div class="slider-group"><div class="slider-header"><span class="slider-label">Padding</span><span class="slider-value">{appearance.settings.links.padding}px</span></div><input type="range" class="slider" min="8" max="24" step="2" value={appearance.settings.links.padding} oninput={(e) => updateSetting('links.padding', +e.currentTarget.value)}/></div>
-							<div class="slider-group"><div class="slider-header"><span class="slider-label">Gap</span><span class="slider-value">{appearance.settings.links.gap}px</span></div><input type="range" class="slider" min="4" max="24" step="2" value={appearance.settings.links.gap} oninput={(e) => updateSetting('links.gap', +e.currentTarget.value)}/></div>
-							<div class="setting-row"><span class="setting-label">Shadow</span><div class="option-group compact">{#each shadowOptions as s}<button class="option-btn small" class:active={appearance.settings.links.shadow === s.value} onclick={() => updateSetting('links.shadow', s.value)}>{s.label}</button>{/each}</div></div>
+									<!-- Text Color -->
+									<div class="color-setting-group">
+										<label class="setting-label">Text</label>
+										<div class="color-presets-row">
+											<!-- Color Picker Button -->
+											<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
+												<div class="gradient-icon"></div>
+											</button>
+											<input type="color" class="hidden-native-picker" value={appearance.settings.links.textColor || getLinkColor()} onchange={(e) => updateSetting('links.textColor', e.currentTarget.value)} />
+											
+											<!-- Preset Colors -->
+											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('links.textColor', '#000000')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ffffff'} style="background:#ffffff; border: 2px solid #e5e5ea" title="#ffffff" onclick={() => updateSetting('links.textColor', '#ffffff')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('links.textColor', '#8e8e93')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ff3b30'} style="background:#ff3b30" title="#ff3b30" onclick={() => updateSetting('links.textColor', '#ff3b30')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ff6b6b'} style="background:#ff6b6b" title="#ff6b6b" onclick={() => updateSetting('links.textColor', '#ff6b6b')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#ffa5a5'} style="background:#ffa5a5" title="#ffa5a5" onclick={() => updateSetting('links.textColor', '#ffa5a5')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#a855f7'} style="background:#a855f7" title="#a855f7" onclick={() => updateSetting('links.textColor', '#a855f7')}></button>
+											<button class="color-preset-circle" class:active={(appearance.settings.links.textColor || getLinkColor()) === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('links.textColor', '#5856d6')}></button>
+										</div>
+									</div>
+
+								{:else if activeBlockTab === 'advanced'}
+									<!-- Appearance Settings - Advanced Tab -->
+									<p class="form-hint" style="margin-bottom: var(--space-4)">Tùy chỉnh chi tiết giao diện block</p>
+									
+									<!-- Toggle Show Background -->
+									<div class="toggle-row" style="margin-bottom: var(--space-4)">
+										<div>
+											<span class="setting-label">Hiển thị Background</span>
+											<p class="form-hint" style="margin-top: 4px">Bật/tắt màu nền cho block</p>
+										</div>
+										<button 
+											class="toggle" 
+											class:active={appearance.settings.links.showBackground} 
+											aria-label="Toggle background" 
+											onclick={() => updateSetting('links.showBackground', !appearance.settings.links.showBackground)}
+										></button>
+									</div>
+									
+									<!-- Toggle Show Border -->
+									<div class="toggle-row" style="margin-bottom: var(--space-4)">
+										<div>
+											<span class="setting-label">Hiển thị Border</span>
+											<p class="form-hint" style="margin-top: 4px">Bật/tắt viền cho block</p>
+										</div>
+										<button 
+											class="toggle" 
+											class:active={appearance.settings.links.showBorder} 
+											aria-label="Toggle border" 
+											onclick={() => updateSetting('links.showBorder', !appearance.settings.links.showBorder)}
+										></button>
+									</div>
+									
+									<!-- Border Settings (conditional) -->
+									{#if appearance.settings.links.showBorder}
+										<div class="border-settings" style="margin-bottom: var(--space-4); padding: var(--space-3); background: var(--color-bg); border-radius: var(--radius-md);">
+											<!-- Border Color -->
+											<div class="color-setting-group" style="margin-bottom: var(--space-3);">
+												<label class="setting-label" style="margin-bottom: var(--space-2); display: block;">Màu Border</label>
+												<div class="color-presets-row">
+													<!-- Color Picker Button -->
+													<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
+														<div class="gradient-icon"></div>
+													</button>
+													<input type="color" class="hidden-native-picker" value={appearance.settings.links.borderColor || '#e5e5ea'} onchange={(e) => updateSetting('links.borderColor', e.currentTarget.value)} />
+													
+													<!-- Preset Colors -->
+													<button class="color-preset-circle" class:active={(appearance.settings.links.borderColor || '#e5e5ea') === '#e5e5ea'} style="background:#e5e5ea" title="#e5e5ea" onclick={() => updateSetting('links.borderColor', '#e5e5ea')}></button>
+													<button class="color-preset-circle" class:active={(appearance.settings.links.borderColor || '#e5e5ea') === '#d1d1d6'} style="background:#d1d1d6" title="#d1d1d6" onclick={() => updateSetting('links.borderColor', '#d1d1d6')}></button>
+													<button class="color-preset-circle" class:active={(appearance.settings.links.borderColor || '#e5e5ea') === '#c7c7cc'} style="background:#c7c7cc" title="#c7c7cc" onclick={() => updateSetting('links.borderColor', '#c7c7cc')}></button>
+													<button class="color-preset-circle" class:active={(appearance.settings.links.borderColor || '#e5e5ea') === '#8e8e93'} style="background:#8e8e93" title="#8e8e93" onclick={() => updateSetting('links.borderColor', '#8e8e93')}></button>
+													<button class="color-preset-circle" class:active={(appearance.settings.links.borderColor || '#e5e5ea') === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('links.borderColor', '#000000')}></button>
+													<button class="color-preset-circle" class:active={(appearance.settings.links.borderColor || '#e5e5ea') === '#007aff'} style="background:#007aff" title="#007aff" onclick={() => updateSetting('links.borderColor', '#007aff')}></button>
+													<button class="color-preset-circle" class:active={(appearance.settings.links.borderColor || '#e5e5ea') === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('links.borderColor', '#5856d6')}></button>
+												</div>
+											</div>
+											
+											<!-- Border Width Slider -->
+											<div class="slider-group">
+												<div class="slider-header">
+													<span class="slider-label">Độ dày Border</span>
+													<span class="slider-value">{appearance.settings.links.borderWidth}px</span>
+												</div>
+												<input 
+													type="range" 
+													class="slider" 
+													min="1" 
+													max="8" 
+													step="1" 
+													value={appearance.settings.links.borderWidth} 
+													oninput={(e) => updateSetting('links.borderWidth', +e.currentTarget.value)}
+												/>
+											</div>
+										</div>
+									{/if}
+									
+									<div class="slider-group">
+										<div class="slider-header">
+											<span class="slider-label">Border Radius</span>
+											<span class="slider-value">{appearance.settings.links.borderRadius}px</span>
+										</div>
+										<input type="range" class="slider" min="0" max="24" step="2" value={appearance.settings.links.borderRadius} oninput={(e) => updateSetting('links.borderRadius', +e.currentTarget.value)}/>
+									</div>
+									
+									<div class="slider-group">
+										<div class="slider-header">
+											<span class="slider-label">Padding</span>
+											<span class="slider-value">{appearance.settings.links.padding}px</span>
+										</div>
+										<input type="range" class="slider" min="8" max="24" step="2" value={appearance.settings.links.padding} oninput={(e) => updateSetting('links.padding', +e.currentTarget.value)}/>
+									</div>
+									
+									<div class="slider-group">
+										<div class="slider-header">
+											<span class="slider-label">Gap</span>
+											<span class="slider-value">{appearance.settings.links.gap}px</span>
+										</div>
+										<input type="range" class="slider" min="4" max="24" step="2" value={appearance.settings.links.gap} oninput={(e) => updateSetting('links.gap', +e.currentTarget.value)}/>
+									</div>
+									
+									<!-- Toggle Show Shadow -->
+									<div class="toggle-row" style="margin-bottom: var(--space-4)">
+										<div>
+											<span class="setting-label">Hiển thị Shadow</span>
+											<p class="form-hint" style="margin-top: 4px">Bật/tắt bóng đổ cho block</p>
+										</div>
+										<button 
+											class="toggle" 
+											class:active={appearance.settings.links.showShadow} 
+											aria-label="Toggle shadow" 
+											onclick={() => updateSetting('links.showShadow', !appearance.settings.links.showShadow)}
+										></button>
+									</div>
+									
+									<!-- Shadow Settings (conditional) -->
+									{#if appearance.settings.links.showShadow}
+										<div class="shadow-settings" style="margin-bottom: var(--space-4); padding: var(--space-3); background: var(--color-bg); border-radius: var(--radius-md);">
+											<!-- Shadow Color -->
+											<div class="color-setting-group" style="margin-bottom: var(--space-3);">
+												<label class="setting-label" style="margin-bottom: var(--space-2); display: block;">Màu Shadow</label>
+												<div class="color-presets-row">
+													<!-- Color Picker Button -->
+													<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
+														<div class="gradient-icon"></div>
+													</button>
+													<input type="color" class="hidden-native-picker" value={appearance.settings.links.shadowColor || '#000000'} onchange={(e) => updateSetting('links.shadowColor', e.currentTarget.value)} />
+													
+													<!-- Preset Colors -->
+													<button class="color-preset-circle" class:active={(appearance.settings.links.shadowColor || '#000000') === '#000000'} style="background:#000000" title="#000000" onclick={() => updateSetting('links.shadowColor', '#000000')}></button>
+													<button class="color-preset-circle" class:active={(appearance.settings.links.shadowColor || '#000000') === '#1c1c1e'} style="background:#1c1c1e" title="#1c1c1e" onclick={() => updateSetting('links.shadowColor', '#1c1c1e')}></button>
+													<button class="color-preset-circle" class:active={(appearance.settings.links.shadowColor || '#000000') === '#3a3a3c'} style="background:#3a3a3c" title="#3a3a3c" onclick={() => updateSetting('links.shadowColor', '#3a3a3c')}></button>
+													<button class="color-preset-circle" class:active={(appearance.settings.links.shadowColor || '#000000') === '#636366'} style="background:#636366" title="#636366" onclick={() => updateSetting('links.shadowColor', '#636366')}></button>
+													<button class="color-preset-circle" class:active={(appearance.settings.links.shadowColor || '#000000') === '#007aff'} style="background:#007aff" title="#007aff" onclick={() => updateSetting('links.shadowColor', '#007aff')}></button>
+													<button class="color-preset-circle" class:active={(appearance.settings.links.shadowColor || '#000000') === '#5856d6'} style="background:#5856d6" title="#5856d6" onclick={() => updateSetting('links.shadowColor', '#5856d6')}></button>
+												</div>
+											</div>
+											
+											<!-- Shadow Blur -->
+											<div class="slider-group" style="margin-bottom: var(--space-3);">
+												<div class="slider-header">
+													<span class="slider-label">Độ mờ (Blur)</span>
+													<span class="slider-value">{appearance.settings.links.shadowBlur}px</span>
+												</div>
+												<input 
+													type="range" 
+													class="slider" 
+													min="0" 
+													max="32" 
+													step="2" 
+													value={appearance.settings.links.shadowBlur} 
+													oninput={(e) => updateSetting('links.shadowBlur', +e.currentTarget.value)}
+												/>
+											</div>
+											
+											<!-- Shadow Offset X -->
+											<div class="slider-group" style="margin-bottom: var(--space-3);">
+												<div class="slider-header">
+													<span class="slider-label">Offset X</span>
+													<span class="slider-value">{appearance.settings.links.shadowOffsetX}px</span>
+												</div>
+												<input 
+													type="range" 
+													class="slider" 
+													min="-16" 
+													max="16" 
+													step="1" 
+													value={appearance.settings.links.shadowOffsetX} 
+													oninput={(e) => updateSetting('links.shadowOffsetX', +e.currentTarget.value)}
+												/>
+											</div>
+											
+											<!-- Shadow Offset Y -->
+											<div class="slider-group" style="margin-bottom: var(--space-3);">
+												<div class="slider-header">
+													<span class="slider-label">Offset Y</span>
+													<span class="slider-value">{appearance.settings.links.shadowOffsetY}px</span>
+												</div>
+												<input 
+													type="range" 
+													class="slider" 
+													min="-16" 
+													max="16" 
+													step="1" 
+													value={appearance.settings.links.shadowOffsetY} 
+													oninput={(e) => updateSetting('links.shadowOffsetY', +e.currentTarget.value)}
+												/>
+											</div>
+											
+											<!-- Shadow Opacity -->
+											<div class="slider-group">
+												<div class="slider-header">
+													<span class="slider-label">Độ trong suốt</span>
+													<span class="slider-value">{Math.round(appearance.settings.links.shadowOpacity * 100)}%</span>
+												</div>
+												<input 
+													type="range" 
+													class="slider" 
+													min="0" 
+													max="100" 
+													step="5" 
+													value={appearance.settings.links.shadowOpacity * 100} 
+													oninput={(e) => updateSetting('links.shadowOpacity', +e.currentTarget.value / 100)}
+												/>
+											</div>
+										</div>
+									{/if}
+								{/if}
+							</div>
 						</div>
 					</div>
 				{/if}

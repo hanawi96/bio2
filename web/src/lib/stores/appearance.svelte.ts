@@ -58,12 +58,22 @@ const defaultAppearance = {
 	links: {
 		style: 'filled' as 'filled' | 'outline' | 'soft' | 'ghost',
 		borderRadius: 12,
-		shadow: 'sm' as 'none' | 'sm' | 'md' | 'lg',
+		shadow: 'sm' as 'none' | 'sm' | 'md' | 'lg', // kept for backward compatibility
 		padding: 16,
 		gap: 12,
 		textAlign: 'center' as 'left' | 'center' | 'right',
 		fontSize: 'M' as 'S' | 'M' | 'L',
-		textColor: '' as string // empty = auto based on style
+		textColor: '' as string, // empty = auto based on style
+		showBackground: true, // toggle to show/hide block background
+		showBorder: false, // toggle to show/hide border
+		borderColor: '#e5e5ea', // border color when showBorder is true
+		borderWidth: 1, // border width in pixels
+		showShadow: false, // toggle to show/hide custom shadow
+		shadowBlur: 8, // shadow blur radius in pixels
+		shadowOffsetX: 0, // shadow horizontal offset
+		shadowOffsetY: 2, // shadow vertical offset
+		shadowColor: '#000000', // shadow color
+		shadowOpacity: 0.12 // shadow opacity (0-1)
 	},
 	colors: {
 		primary: '#007aff',
@@ -193,7 +203,17 @@ function mapPresetToSettings(presetConfig: Record<string, any>): Partial<Appeara
 			gap: parseSize(linkDefaults.gap) ?? 12,
 			textAlign: linkDefaults.textAlign || 'center',
 			fontSize: linkDefaults.fontSize || 'M',
-			textColor: ''
+			textColor: '',
+			showBackground: true,
+			showBorder: false,
+			borderColor: '#e5e5ea',
+			borderWidth: 1,
+			showShadow: false,
+			shadowBlur: 8,
+			shadowOffsetX: 0,
+			shadowOffsetY: 2,
+			shadowColor: '#000000',
+			shadowOpacity: 0.12
 		};
 
 		// Nếu có color trong linkItem, cập nhật colors.cardBackground
