@@ -38,7 +38,7 @@ const defaultAppearance = {
 		}
 	},
 	header: {
-		style: 'default' as 'default' | 'minimal' | 'centered' | 'card',
+		style: 'minimal' as 'minimal' | 'classic',
 		showAvatar: true,
 		showBio: true,
 		showSocials: true,
@@ -157,11 +157,26 @@ function shadowLevelToCustom(level: string): { blur: number; offsetX: number; of
 
 // Helper: parse shadow CSS string to extract values
 // Example: "0 2px 8px rgba(0,0,0,0.12)" -> { blur: 8, offsetX: 0, offsetY: 2, opacity: 0.12 }
+// Example with spread: "0 4px 6px -1px rgba(0,0,0,0.1)" -> { blur: 6, offsetX: 0, offsetY: 4, opacity: 0.1 }
 function parseShadow(shadowValue: string | undefined): { blur: number; offsetX: number; offsetY: number; opacity: number; color: string } | null {
 	if (!shadowValue || shadowValue === 'none') return null;
 	
-	// Match pattern: "0px 2px 8px rgba(0,0,0,0.12)"
-	const match = shadowValue.match(/([-\d]+)px\s+([-\d]+)px\s+([-\d]+)px\s+rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+	// Match pattern with optional spread: "0 4px 6px -1px rgba(0,0,0,0.1)" or "0px 4px 6px -1px rgba(0,0,0,0.1)"
+	// Note: px is optional for each value
+	const matchWithSpread = shadowValue.match(/([-\d]+)(?:px)?\s+([-\d]+)(?:px)?\s+([-\d]+)(?:px)?\s+([-\d]+)(?:px)?\s+rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+	if (matchWithSpread) {
+		return {
+			offsetX: parseInt(matchWithSpread[1]),
+			offsetY: parseInt(matchWithSpread[2]),
+			blur: parseInt(matchWithSpread[3]),
+			// spread (matchWithSpread[4]) is ignored for now - we don't have UI for it
+			color: `#${parseInt(matchWithSpread[5]).toString(16).padStart(2, '0')}${parseInt(matchWithSpread[6]).toString(16).padStart(2, '0')}${parseInt(matchWithSpread[7]).toString(16).padStart(2, '0')}`,
+			opacity: parseFloat(matchWithSpread[8])
+		};
+	}
+	
+	// Match pattern without spread: "0 2px 8px rgba(0,0,0,0.12)" or "0px 2px 8px rgba(0,0,0,0.12)"
+	const match = shadowValue.match(/([-\d]+)(?:px)?\s+([-\d]+)(?:px)?\s+([-\d]+)(?:px)?\s+rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
 	if (match) {
 		return {
 			offsetX: parseInt(match[1]),

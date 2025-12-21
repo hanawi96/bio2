@@ -273,9 +273,9 @@
 	function getShadow(): string {
 		// Nếu bật custom shadow, dùng custom values
 		if (appearance.settings.links.showShadow) {
-			const blur = appearance.settings.links.shadowBlur || 8;
-			const offsetX = appearance.settings.links.shadowOffsetX || 0;
-			const offsetY = appearance.settings.links.shadowOffsetY || 2;
+			const blur = appearance.settings.links.shadowBlur ?? 8;
+			const offsetX = appearance.settings.links.shadowOffsetX ?? 0;
+			const offsetY = appearance.settings.links.shadowOffsetY ?? 2;
 			const color = appearance.settings.links.shadowColor || '#000000';
 			const opacity = appearance.settings.links.shadowOpacity ?? 0.12;
 			
@@ -287,13 +287,8 @@
 			return `${offsetX}px ${offsetY}px ${blur}px rgba(${r}, ${g}, ${b}, ${opacity})`;
 		}
 		
-		// Fallback: dùng preset shadow levels (backward compatibility)
-		return {
-			none: 'none',
-			sm: '0 1px 2px rgba(0,0,0,0.08)',
-			md: '0 2px 8px rgba(0,0,0,0.12)',
-			lg: '0 4px 16px rgba(0,0,0,0.16)'
-		}[appearance.settings.links.shadow] || 'none';
+		// Khi tắt showShadow, return 'none' ngay lập tức
+		return 'none';
 	}
 
 	function getLinkBg(): string {
@@ -811,17 +806,18 @@
 										
 										<!-- Custom Gradient Button -->
 										<button 
-											class="preview-item custom-gradient-btn"
+											class="preview-item"
 											class:active={isCustomEnabled || (!hasCurrentInPresets && currentGradient)}
 											onclick={openCustomGradientBuilder}
 											title="Custom Gradient"
+											style="background: {isCustomEnabled || (!hasCurrentInPresets && currentGradient) ? currentGradient : 'linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%)'}"
 										>
-											{#if isCustomEnabled || (!hasCurrentInPresets && currentGradient)}
-												<div class="custom-preview" style="background:{currentGradient}"></div>
-											{:else}
+											{#if !(isCustomEnabled || (!hasCurrentInPresets && currentGradient))}
 												<div class="custom-icon">
-													<Settings size={20} />
-													<span class="text-xs">Custom</span>
+													<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+														<line x1="12" y1="5" x2="12" y2="19"></line>
+														<line x1="5" y1="12" x2="19" y2="12"></line>
+													</svg>
 												</div>
 											{/if}
 										</button>
@@ -1473,6 +1469,15 @@
 										{/if}
 									</div>
 
+									<!-- Border Radius Slider -->
+									<div class="slider-group" style="margin-top: var(--space-4)">
+										<div class="slider-header">
+											<span class="slider-label">Border Radius</span>
+											<span class="slider-value">{appearance.settings.links.borderRadius}px</span>
+										</div>
+										<input type="range" class="slider" min="0" max="24" step="2" value={appearance.settings.links.borderRadius} oninput={(e) => updateSetting('links.borderRadius', +e.currentTarget.value)}/>
+									</div>
+
 								{:else if activeBlockTab === 'advanced'}
 									<!-- Appearance Settings - Advanced Tab -->
 									<p class="form-hint" style="margin-bottom: var(--space-4)">Tùy chỉnh chi tiết giao diện block</p>
@@ -1548,30 +1553,6 @@
 											</div>
 										</div>
 									{/if}
-									
-									<div class="slider-group">
-										<div class="slider-header">
-											<span class="slider-label">Border Radius</span>
-											<span class="slider-value">{appearance.settings.links.borderRadius}px</span>
-										</div>
-										<input type="range" class="slider" min="0" max="24" step="2" value={appearance.settings.links.borderRadius} oninput={(e) => updateSetting('links.borderRadius', +e.currentTarget.value)}/>
-									</div>
-									
-									<div class="slider-group">
-										<div class="slider-header">
-											<span class="slider-label">Padding</span>
-											<span class="slider-value">{appearance.settings.links.padding}px</span>
-										</div>
-										<input type="range" class="slider" min="8" max="24" step="2" value={appearance.settings.links.padding} oninput={(e) => updateSetting('links.padding', +e.currentTarget.value)}/>
-									</div>
-									
-									<div class="slider-group">
-										<div class="slider-header">
-											<span class="slider-label">Gap</span>
-											<span class="slider-value">{appearance.settings.links.gap}px</span>
-										</div>
-										<input type="range" class="slider" min="4" max="24" step="2" value={appearance.settings.links.gap} oninput={(e) => updateSetting('links.gap', +e.currentTarget.value)}/>
-									</div>
 									
 									<!-- Toggle Show Shadow -->
 									<div class="toggle-row" style="margin-bottom: var(--space-4)">
@@ -1683,6 +1664,23 @@
 											</div>
 										</div>
 									{/if}
+									
+									<!-- Padding & Gap Sliders - Moved to end -->
+									<div class="slider-group">
+										<div class="slider-header">
+											<span class="slider-label">Padding</span>
+											<span class="slider-value">{appearance.settings.links.padding}px</span>
+										</div>
+										<input type="range" class="slider" min="8" max="24" step="2" value={appearance.settings.links.padding} oninput={(e) => updateSetting('links.padding', +e.currentTarget.value)}/>
+									</div>
+									
+									<div class="slider-group">
+										<div class="slider-header">
+											<span class="slider-label">Gap</span>
+											<span class="slider-value">{appearance.settings.links.gap}px</span>
+										</div>
+										<input type="range" class="slider" min="4" max="24" step="2" value={appearance.settings.links.gap} oninput={(e) => updateSetting('links.gap', +e.currentTarget.value)}/>
+									</div>
 								{/if}
 							</div>
 						</div>
@@ -1751,7 +1749,13 @@
 						<div class="debug-item">Radius: {appearance.settings.links.borderRadius}px</div>
 						<div class="debug-item">Padding: {appearance.settings.links.padding}px</div>
 						<div class="debug-item">Gap: {appearance.settings.links.gap}px</div>
-						<div class="debug-item">Shadow: {appearance.settings.links.shadow}</div>
+						<div class="debug-item">Show Shadow: {appearance.settings.links.showShadow}</div>
+						{#if appearance.settings.links.showShadow}
+							<div class="debug-item">Shadow Blur: {appearance.settings.links.shadowBlur}px</div>
+							<div class="debug-item">Shadow Offset: {appearance.settings.links.shadowOffsetX}px, {appearance.settings.links.shadowOffsetY}px</div>
+							<div class="debug-item">Shadow Color: {appearance.settings.links.shadowColor}</div>
+							<div class="debug-item">Shadow Opacity: {appearance.settings.links.shadowOpacity}</div>
+						{/if}
 					</div>
 					<div class="debug-section">
 						<strong>Layout:</strong>
@@ -2345,7 +2349,10 @@
 		transition: all 0.2s ease;
 		box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 		position: relative;
-		overflow: hidden;
+		overflow: visible;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 	
 	.gradient-presets-grid .preview-item:hover {
@@ -2358,42 +2365,21 @@
 		transform: scale(1.02);
 	}
 	
-	.gradient-presets-grid .custom-gradient-btn {
+	.gradient-presets-grid .custom-icon {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--color-bg);
-		border: 2px dashed var(--color-separator);
-	}
-	
-	.gradient-presets-grid .custom-gradient-btn:hover {
-		border-color: var(--color-primary);
-		background: var(--color-bg-secondary);
-	}
-	
-	.gradient-presets-grid .custom-gradient-btn.active {
-		border-style: solid;
-		border-color: var(--color-primary);
-		border-width: 3px;
-		box-shadow: 0 0 0 1px var(--color-primary-light);
-	}
-	
-	.gradient-presets-grid .custom-preview {
 		width: 100%;
 		height: 100%;
-		border-radius: 17px;
+		color: #999;
+		transition: all 0.2s ease;
+		position: relative;
+		z-index: 1;
 	}
 	
-	.gradient-presets-grid .custom-icon {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 6px;
-		color: var(--color-text-secondary);
-	}
-	
-	.gradient-presets-grid .custom-gradient-btn:hover .custom-icon {
-		color: var(--color-primary);
+	.gradient-presets-grid .preview-item:hover .custom-icon {
+		color: #666;
+		transform: scale(1.1);
 	}
 	
 	.color-preset-circle.gradient-picker {
