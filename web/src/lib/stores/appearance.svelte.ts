@@ -28,18 +28,23 @@ const defaultAppearance = {
 		color: '#f2f2f7',
 		gradient: '',
 		imageUrl: '',
-		effects: { blur: 0, dim: 0 }
+		effects: { blur: 0, dim: 0 },
+		customGradient: {
+			enabled: false,
+			type: 'linear' as 'linear' | 'radial',
+			angle: 135,
+			fromColor: '#667eea',
+			toColor: '#764ba2'
+		}
 	},
 	header: {
 		style: 'default' as 'default' | 'minimal' | 'centered' | 'card',
-		align: 'center' as 'left' | 'center' | 'right',
 		showAvatar: true,
 		showBio: true,
 		showSocials: true,
 		avatarSize: 'M' as 'S' | 'M' | 'L',
 		avatarShape: 'circle' as 'circle' | 'rounded' | 'square',
 		bioSize: 'M' as 'S' | 'M' | 'L' | 'XL',
-		bioAlign: 'center' as 'left' | 'center' | 'right',
 		bioColor: '' as string, // empty = use textSecondary from colors
 		cover: {
 			type: 'color' as 'color' | 'image',
@@ -69,6 +74,19 @@ const defaultAppearance = {
 };
 
 export type AppearanceSettings = typeof defaultAppearance;
+
+// Build gradient CSS string from config
+export function buildGradientString(config: {
+	type: 'linear' | 'radial';
+	angle: number;
+	fromColor: string;
+	toColor: string;
+}): string {
+	if (config.type === 'radial') {
+		return `radial-gradient(circle, ${config.fromColor} 0%, ${config.toColor} 100%)`;
+	}
+	return `linear-gradient(${config.angle}deg, ${config.fromColor} 0%, ${config.toColor} 100%)`;
+}
 
 // Lấy config từ preset theo ID
 function getPresetConfigById(presetId: number): Record<string, any> {
@@ -121,6 +139,13 @@ function mapPresetToSettings(presetConfig: Record<string, any>): Partial<Appeara
 			effects: {
 				blur: bg.effects?.blur ?? 0,
 				dim: bg.effects?.dim ?? 0
+			},
+			customGradient: {
+				enabled: false,
+				type: 'linear',
+				angle: 135,
+				fromColor: '#667eea',
+				toColor: '#764ba2'
 			}
 		};
 	}

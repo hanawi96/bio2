@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { getAuth } from '$lib/stores/auth.svelte';
-	import { getAppearance, loadAppearance, selectPreset, updateSetting, saveAppearance, resetAppearance, resetToPresetDefaults } from '$lib/stores/appearance.svelte';
+	import { getAppearance, loadAppearance, selectPreset, updateSetting, saveAppearance, resetAppearance, resetToPresetDefaults, buildGradientString } from '$lib/stores/appearance.svelte';
 	import { bio } from '$lib/api/client';
 	import { Palette, Image, User, Link, Droplets, Type, Save, AlertTriangle, Sun, Moon, AlignLeft, AlignCenter, AlignRight, Settings, RefreshCw, Instagram, Music, Facebook, Twitter, Youtube, Linkedin, Github, Globe, X } from 'lucide-svelte';
 
@@ -14,6 +14,53 @@
 	let activeSection = $state<string>('theme');
 	let activeHeaderTab = $state<string>('avatar'); // Sub-tab for header settings
 	let showDebug = $state(false);
+	
+	// Custom Gradient Builder State
+	let showCustomGradientBuilder = $state(false);
+	let customGradientDraft = $state({
+		type: 'linear' as 'linear' | 'radial',
+		angle: 135,
+		fromColor: '#667eea',
+		toColor: '#764ba2'
+	});
+	
+	// Derived state for live preview - auto updates when draft changes
+	let liveGradientPreview = $derived(buildGradientString(customGradientDraft));
+	
+	// Track previous values to avoid unnecessary updates
+	let prevGradientString = '';
+	
+	// Auto-apply custom gradient when draft changes
+	$effect(() => {
+		// Track draft changes
+		const draft = customGradientDraft;
+		const isOpen = showCustomGradientBuilder;
+		
+		if (isOpen) {
+			// Validate colors
+			const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
+			const validColors = hexColorRegex.test(draft.fromColor) && 
+			                    hexColorRegex.test(draft.toColor);
+			
+			if (validColors) {
+				const gradientString = buildGradientString(draft);
+				
+				// Only update if gradient actually changed (avoid infinite loop)
+				if (gradientString !== prevGradientString) {
+					prevGradientString = gradientString;
+					
+					updateSetting('background.customGradient', {
+						type: draft.type,
+						angle: draft.angle,
+						fromColor: draft.fromColor,
+						toColor: draft.toColor,
+						enabled: true
+					});
+					updateSetting('background.gradient', gradientString);
+				}
+			}
+		}
+	});
 
 	const sections = [
 		{ id: 'theme', label: 'Theme', icon: 'palette' },
@@ -116,7 +163,7 @@
 	const colorSchemes = [
 		{ name: 'Neutral', primary: '#1c1c1e', bg: '#f2f2f7', text: '#1c1c1e', textSecondary: '#8e8e93' },
 		{ name: 'Bold', primary: '#ff3b30', bg: '#ffffff', text: '#1c1c1e', textSecondary: '#8e8e93' },
-		{ name: 'Ocean', primary: '#007aff', bg: '#e3f2fd', text: '#1c1c1e', textSecondary: '#6b7280' },
+		{ name: 'Ocean', primary: '#007aff', bg: '#e3f2fd', text: '#1c1c1e', textSecondary: '#f0f9ff' },
 		{ name: 'Sunset', primary: '#ff9500', bg: '#fff7ed', text: '#1c1c1e', textSecondary: '#78716c' },
 		{ name: 'Forest', primary: '#34c759', bg: '#f0fdf4', text: '#1c1c1e', textSecondary: '#6b7280' },
 		{ name: 'Purple', primary: '#af52de', bg: '#faf5ff', text: '#1c1c1e', textSecondary: '#78716c' }
@@ -210,10 +257,7 @@
 	// Header style configurations
 	function getHeaderContainerStyle(): string {
 		const style = appearance.settings.header.style;
-		const align = appearance.settings.header.align;
-		
-		// Map align to flexbox alignment
-		const alignItems = align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center';
+		const alignItems = 'center'; // Always center for consistency
 		
 		switch (style) {
 			case 'classic':
@@ -222,7 +266,7 @@
 				const baseSize = getAvatarSize();
 				const avatarSize = Math.round(baseSize * 1.3);
 				const topPadding = Math.round(avatarSize / 2) + 12; // Half avatar + gap
-				return `padding: ${topPadding}px 16px 16px 16px; gap: 12px; align-items: center; margin-top: 0;`;
+				return `padding: ${topPadding}px 16px 16px 16px; gap: 12px; align-items: ${alignItems}; margin-top: 0;`;
 			case 'minimal':
 				// No cover, simple layout
 				return `padding: 16px 0; gap: 8px; align-items: ${alignItems};`;
@@ -300,14 +344,9 @@
 		
 		const maxWidth = style === 'minimal' ? '280px' : style === 'classic' ? '320px' : '280px';
 		
-		// Map align to align-self for flexbox
-		const alignSelfMap: Record<string, string> = {
-			left: 'flex-start',
-			center: 'center',
-			right: 'flex-end'
-		};
-		const alignSelf = alignSelfMap[bioSettings.bioAlign] || 'center';
-		const textAlign = style === 'minimal' ? 'center' : bioSettings.bioAlign;
+		// Always center align for consistency
+		const alignSelf = 'center';
+		const textAlign = 'center';
 		
 		return `color: ${textColor}; font-size: ${fontSize}; max-width: ${maxWidth}; text-align: ${textAlign}; align-self: ${alignSelf}; line-height: 1.5;`;
 	}
@@ -321,7 +360,7 @@
 	}
 
 	function getSocialIconStyle(): string {
-		const iconColor = appearance.settings.header.socialIconsColor || 'var(--color-text-secondary)';
+		const iconColor = appearance.settings.header.socialIconsColor || appearance.settings.colors.textSecondary;
 		const showBg = appearance.settings.header.socialIconsBg ?? true;
 		
 		if (showBg) {
@@ -329,6 +368,43 @@
 		}
 		return `background: transparent; color: ${iconColor};`;
 	}
+
+	// Custom Gradient Functions
+	function openCustomGradientBuilder() {
+		const bg = appearance.settings.background;
+		if (bg.customGradient?.enabled) {
+			// Load existing custom gradient
+			customGradientDraft = {
+				type: bg.customGradient.type,
+				angle: bg.customGradient.angle,
+				fromColor: bg.customGradient.fromColor,
+				toColor: bg.customGradient.toColor
+			};
+		} else {
+			// Use default values
+			customGradientDraft = {
+				type: 'linear',
+				angle: 135,
+				fromColor: '#667eea',
+				toColor: '#764ba2'
+			};
+		}
+		showCustomGradientBuilder = true;
+	}
+
+	function closeCustomGradientBuilder() {
+		showCustomGradientBuilder = false;
+	}
+
+	function selectPresetGradient(presetGradient: string) {
+		updateSetting('background.gradient', presetGradient);
+		updateSetting('background.customGradient.enabled', false);
+	}
+
+	function isValidHexColor(color: string): boolean {
+		return /^#[0-9A-Fa-f]{6}$/.test(color);
+	}
+
 </script>
 
 {#if appearance.loading}
@@ -339,14 +415,19 @@
 			<div><h1>Giao diện</h1><p class="text-secondary text-sm">Tùy chỉnh giao diện trang bio</p></div>
 			<div class="header-actions">
 				{#if appearance.dirty}<button class="btn-secondary" onclick={resetAppearance} disabled={appearance.saving}>Hủy</button>{/if}
-				<button class="btn-primary btn-save" onclick={handleSave} disabled={!appearance.dirty || appearance.saving}>
-					{#if appearance.saving}<span class="spinner"></span>{:else}<Save size={16} />{/if}
+				<button class="btn-primary btn-save" class:has-changes={appearance.dirty} onclick={handleSave} disabled={!appearance.dirty || appearance.saving}>
+					{#if appearance.saving}
+						<span class="spinner"></span>
+					{:else}
+						<Save size={16} />
+						{#if appearance.dirty}
+							<span class="change-indicator"></span>
+						{/if}
+					{/if}
 					<span>{appearance.saving ? 'Đang lưu...' : 'Lưu tất cả'}</span>
 				</button>
 			</div>
 		</header>
-
-		{#if appearance.dirty}<div class="alert-banner warning"><AlertTriangle size={16} /> Bạn có thay đổi chưa lưu</div>{/if}
 
 		<div class="layout">
 			<nav class="sidebar">
@@ -512,19 +593,17 @@
 							<div class="card-header"><h2>Background Color</h2></div>
 							<div class="card-body">
 								<div class="color-setting-group">
-									<div class="color-setting-header">
-										<span class="setting-label">Solid Color</span>
-										<div class="color-value-display">
-											<input type="color" class="color-picker-trigger" value={appearance.settings.background.color} onchange={(e) => updateSetting('background.color', e.currentTarget.value)} title="Pick custom color"/>
-											<input type="text" class="color-hex-input" value={appearance.settings.background.color} onchange={(e) => updateSetting('background.color', e.currentTarget.value)} placeholder="#000000"/>
-										</div>
-									</div>
-									<div class="color-presets-inline">
+									<div class="color-presets-row">
+										<button class="color-preset-circle gradient-picker" title="Chọn màu tùy chỉnh" onclick={(e) => { e.currentTarget.nextElementSibling?.click(); }}>
+											<div class="gradient-icon"></div>
+										</button>
+										<input type="color" class="hidden-native-picker" value={appearance.settings.background.color} onchange={(e) => updateSetting('background.color', e.currentTarget.value)} />
+										
 										{#each presetColors as c}
 											<button 
-												class="color-preset-btn" 
+												class="color-preset-circle" 
 												class:active={appearance.settings.background.color === c} 
-												style="background:{c}" 
+												style="background:{c}; {c === '#ffffff' ? 'border: 2px solid #e5e5ea' : ''}" 
 												title={c} 
 												onclick={() => updateSetting('background.color', c)}
 											></button>
@@ -538,7 +617,149 @@
 						<div class="card">
 							<div class="card-header"><h2>Gradient</h2></div>
 							<div class="card-body">
-								<div class="grid-3">{#each gradientPresets as g, i}<button class="preview-item" style="background:{g}" class:active={appearance.settings.background.gradient === g} title="Gradient {i+1}" onclick={() => updateSetting('background.gradient', g)}></button>{/each}</div>
+								<!-- Gradient Presets Grid -->
+								<div class="gradient-presets-grid">
+									{#each gradientPresets as g, i}
+										<button 
+											class="preview-item" 
+											style="background:{g}" 
+											class:active={appearance.settings.background.gradient === g && !appearance.settings.background.customGradient?.enabled}
+											title="Gradient {i+1}" 
+											onclick={() => selectPresetGradient(g)}
+										></button>
+									{/each}
+									
+									<!-- Custom Gradient Button -->
+									<button 
+										class="preview-item custom-gradient-btn"
+										class:active={appearance.settings.background.customGradient?.enabled}
+										onclick={openCustomGradientBuilder}
+										title="Custom Gradient"
+									>
+										{#if appearance.settings.background.customGradient?.enabled}
+											<div class="custom-preview" style="background:{appearance.settings.background.gradient}"></div>
+										{:else}
+											<div class="custom-icon">
+												<Settings size={20} />
+												<span class="text-xs">Custom</span>
+											</div>
+										{/if}
+									</button>
+								</div>
+								
+								<!-- Custom Gradient Builder -->
+								{#if showCustomGradientBuilder}
+									<div class="custom-gradient-builder">
+										<div class="flex justify-between items-center mb-4 pb-3 border-b border-separator">
+											<h3 class="text-base font-semibold">Custom Gradient</h3>
+											<button class="btn-icon" onclick={closeCustomGradientBuilder} title="Close" aria-label="Close gradient builder">
+												<X size={16} />
+											</button>
+										</div>
+										
+										<!-- Gradient Type -->
+										<div class="flex justify-between items-center mb-4">
+											<span class="setting-label">Type</span>
+											<div class="option-group compact">
+												<button 
+													class="option-btn small"
+													class:active={customGradientDraft.type === 'linear'}
+													onclick={() => customGradientDraft.type = 'linear'}
+													aria-label="Linear gradient"
+												>
+													Linear
+												</button>
+												<button 
+													class="option-btn small"
+													class:active={customGradientDraft.type === 'radial'}
+													onclick={() => customGradientDraft.type = 'radial'}
+													aria-label="Radial gradient"
+												>
+													Radial
+												</button>
+											</div>
+										</div>
+										
+										<!-- Angle Slider (Linear only) -->
+										{#if customGradientDraft.type === 'linear'}
+											<div class="mb-4">
+												<div class="flex justify-between items-center mb-2">
+													<span class="slider-label">Angle</span>
+													<span class="slider-value">{customGradientDraft.angle}°</span>
+												</div>
+												<input 
+													type="range" 
+													class="slider" 
+													min="0" 
+													max="360" 
+													step="15"
+													bind:value={customGradientDraft.angle}
+													aria-label="Gradient angle"
+												/>
+											</div>
+										{/if}
+										
+										<!-- Colors Row -->
+										<div class="grid grid-cols-2 gap-3 my-4">
+											<!-- From Color -->
+											<div>
+												<div class="flex justify-between items-center mb-2">
+													<span class="setting-label">From Color</span>
+													<div class="flex gap-2">
+														<input 
+															type="color" 
+															class="color-picker-trigger"
+															bind:value={customGradientDraft.fromColor}
+															aria-label="Pick from color"
+														/>
+														<input 
+															type="text" 
+															class="color-hex-input"
+															class:error={!isValidHexColor(customGradientDraft.fromColor)}
+															bind:value={customGradientDraft.fromColor}
+															placeholder="#667eea"
+															aria-label="From color hex code"
+														/>
+													</div>
+												</div>
+											</div>
+											
+											<!-- To Color -->
+											<div>
+												<div class="flex justify-between items-center mb-2">
+													<span class="setting-label">To Color</span>
+													<div class="flex gap-2">
+														<input 
+															type="color" 
+															class="color-picker-trigger"
+															bind:value={customGradientDraft.toColor}
+															aria-label="Pick to color"
+														/>
+														<input 
+															type="text" 
+															class="color-hex-input"
+															class:error={!isValidHexColor(customGradientDraft.toColor)}
+															bind:value={customGradientDraft.toColor}
+															placeholder="#764ba2"
+															aria-label="To color hex code"
+														/>
+													</div>
+												</div>
+											</div>
+										</div>
+										
+										<!-- Live Preview -->
+										<div class="my-4">
+											<div class="text-sm font-medium text-text-secondary mb-2">Preview</div>
+											<div 
+												class="w-full h-[120px] rounded-md border border-separator shadow-inner"
+												style="background:{liveGradientPreview}"
+												role="img"
+												aria-label="Gradient preview"
+											></div>
+										</div>
+									</div>
+								{/if}
 							</div>
 						</div>
 					{/if}
@@ -608,21 +829,6 @@
 							<div class="sub-tab-content">
 								{#if activeHeaderTab === 'avatar'}
 									<!-- Avatar Settings -->
-									<div class="setting-row">
-										<span class="setting-label">Căn chỉnh Header</span>
-										<div class="segmented-control">
-											{#each alignOptions as a}
-												<button class:active={appearance.settings.header.align === a.value} title={a.value} onclick={() => updateSetting('header.align', a.value)}>
-													{#if a.icon === 'left'}<AlignLeft size={16} />
-													{:else if a.icon === 'center'}<AlignCenter size={16} />
-													{:else if a.icon === 'right'}<AlignRight size={16} />
-													{/if}
-												</button>
-											{/each}
-										</div>
-									</div>
-									<p class="form-hint" style="margin-bottom: var(--space-3)">Căn chỉnh avatar, username và social icons</p>
-
 									<div class="setting-row">
 										<span class="setting-label">Kích thước Avatar</span>
 										<div class="option-group compact">
@@ -731,19 +937,6 @@
 											<div class="option-group compact">
 												{#each fontSizes as s}
 													<button class="option-btn small" class:active={appearance.settings.header.bioSize === s.value} onclick={() => updateSetting('header.bioSize', s.value)}>{s.label}</button>
-												{/each}
-											</div>
-										</div>
-										<div class="setting-row">
-											<span class="setting-label">Căn lề Bio</span>
-											<div class="segmented-control">
-												{#each alignOptions as a}
-													<button class:active={appearance.settings.header.bioAlign === a.value} title={a.value} onclick={() => updateSetting('header.bioAlign', a.value)}>
-														{#if a.icon === 'left'}<AlignLeft size={16} />
-														{:else if a.icon === 'center'}<AlignCenter size={16} />
-														{:else if a.icon === 'right'}<AlignRight size={16} />
-														{/if}
-													</button>
 												{/each}
 											</div>
 										</div>
@@ -1165,9 +1358,45 @@
 	.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
 	.page-header h1 { font-size: var(--text-xl); font-weight: 600; margin-bottom: var(--space-1); }
 	.header-actions { display: flex; gap: var(--space-3); }
-	.btn-save { display: flex; align-items: center; gap: var(--space-2); }
-	.btn-save .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
-	.alert-banner { margin-bottom: var(--space-4); display: flex; align-items: center; gap: var(--space-2); }
+	.btn-save { 
+		display: flex; 
+		align-items: center; 
+		gap: var(--space-2); 
+		position: relative;
+		transition: all 0.3s ease;
+	}
+	.btn-save.has-changes {
+		animation: pulse-glow 2s ease-in-out infinite;
+	}
+	.btn-save .spinner { 
+		width: 16px; 
+		height: 16px; 
+		border: 2px solid rgba(255,255,255,0.3); 
+		border-top-color: white; 
+		border-radius: 50%; 
+		animation: spin 0.8s linear infinite; 
+	}
+	.change-indicator {
+		position: absolute;
+		top: -4px;
+		right: -4px;
+		width: 10px;
+		height: 10px;
+		background: #ff9500;
+		border: 2px solid white;
+		border-radius: 50%;
+		animation: pulse-dot 2s ease-in-out infinite;
+	}
+	
+	@keyframes pulse-glow {
+		0%, 100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
+		50% { box-shadow: 0 2px 16px rgba(255, 149, 0, 0.4); }
+	}
+	
+	@keyframes pulse-dot {
+		0%, 100% { transform: scale(1); opacity: 1; }
+		50% { transform: scale(1.2); opacity: 0.8; }
+	}
 
 	.layout { display: grid; grid-template-columns: 160px 1fr 360px; gap: var(--space-5); }
 	.sidebar { display: flex; flex-direction: column; gap: var(--space-1); position: sticky; top: 80px; height: fit-content; }

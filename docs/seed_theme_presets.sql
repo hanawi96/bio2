@@ -104,7 +104,7 @@ INSERT INTO theme_presets (key, name, tier, visibility, is_official, config) VAL
   "semantic": {
     "color": {
       "primary": "#667eea",
-      "text": { "default": "#1f2937", "muted": "#6b7280" },
+      "text": { "default": "#1f2937", "muted": "#f0f9ff" },
       "surface": { "page": "transparent", "card": "rgba(255, 255, 255, 0.85)" },
       "border": { "default": "rgba(255, 255, 255, 0.3)" }
     }
@@ -146,7 +146,7 @@ INSERT INTO theme_presets (key, name, tier, visibility, is_official, config) VAL
   "semantic": {
     "color": {
       "primary": "#ff6b6b",
-      "text": { "default": "#2d3436", "muted": "#636e72" },
+      "text": { "default": "#2d3436", "muted": "#fff5f5" },
       "surface": { "page": "transparent", "card": "rgba(255, 255, 255, 0.9)" },
       "border": { "default": "rgba(255, 255, 255, 0.4)" }
     }
@@ -187,7 +187,7 @@ INSERT INTO theme_presets (key, name, tier, visibility, is_official, config) VAL
   "semantic": {
     "color": {
       "primary": "#00b894",
-      "text": { "default": "#2d3436", "muted": "#636e72" },
+      "text": { "default": "#2d3436", "muted": "#f0fdf4" },
       "surface": { "page": "transparent", "card": "rgba(255, 255, 255, 0.88)" },
       "border": { "default": "rgba(255, 255, 255, 0.35)" }
     }
@@ -270,7 +270,7 @@ INSERT INTO theme_presets (key, name, tier, visibility, is_official, config) VAL
   "semantic": {
     "color": {
       "primary": "#ec4899",
-      "text": { "default": "#831843", "muted": "#9d174d" },
+      "text": { "default": "#831843", "muted": "#be185d" },
       "surface": { "page": "transparent", "card": "rgba(255, 255, 255, 0.75)" },
       "border": { "default": "rgba(236, 72, 153, 0.2)" }
     }

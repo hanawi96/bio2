@@ -4,35 +4,66 @@
 
 Bạn giờ có thể dùng cả 2 cách:
 
-### 1. Tailwind Utility Classes (sử dụng CSS Variables)
+### 🎯 CHIẾN LƯỢC: Tailwind + iOS Custom Styles
+
+#### **Khi nào dùng Tailwind:**
+- ✅ Layout (flex, grid, positioning)
+- ✅ Spacing (margin, padding, gap)
+- ✅ Responsive design
+- ✅ Common utilities (text-center, hidden, etc.)
+
+#### **Khi nào dùng CSS Variables + Custom Classes:**
+- ✅ iOS-specific components (buttons, cards, inputs)
+- ✅ Complex animations
+- ✅ Component-specific styles
+- ✅ Design system tokens
+
+---
+
+## 📚 EXAMPLES
+
+### 1. Tailwind cho Layout
 ```svelte
-<div class="bg-primary text-white p-4 rounded-lg shadow-md">
-  <h1 class="text-base font-semibold">Hello Tailwind</h1>
-  <p class="text-sm text-secondary">Using CSS variables</p>
+<!-- ✅ GOOD: Dùng Tailwind cho layout -->
+<div class="flex justify-between items-center mb-4">
+  <h3 class="text-base font-semibold">Title</h3>
+  <button class="p-2 rounded hover:bg-bg-tertiary">Close</button>
+</div>
+
+<div class="grid grid-cols-2 gap-3 my-4">
+  <div>Column 1</div>
+  <div>Column 2</div>
 </div>
 ```
 
-### 2. CSS Variables (như trước)
+### 2. CSS Variables cho iOS Components
 ```svelte
-<style>
-  .custom {
-    background: var(--color-primary);
-    padding: var(--space-4);
-    border-radius: var(--radius-lg);
-  }
-</style>
+<!-- ✅ GOOD: Dùng custom classes cho iOS components -->
+<button class="btn-primary">Primary Button</button>
+<button class="btn-secondary">Secondary Button</button>
+<div class="card">
+  <div class="card-header">Header</div>
+  <div class="card-body">Body</div>
+</div>
 ```
 
 ### 3. Kết hợp cả 2
 ```svelte
-<div class="flex items-center gap-3 p-4" style="background: var(--color-bg-secondary)">
-  <button class="bg-primary text-white px-4 py-2 rounded-md hover:opacity-90">
-    Click me
-  </button>
+<!-- ✅ BEST: Kết hợp Tailwind layout + iOS components -->
+<div class="flex gap-3 mt-4 pt-3 border-t border-separator">
+  <button class="btn-secondary">Cancel</button>
+  <button class="btn-primary">Save</button>
+</div>
+
+<div class="grid grid-cols-2 gap-3">
+  <input type="text" class="color-hex-input" />
+  <input type="text" class="color-hex-input" />
 </div>
 ```
 
-## Tailwind Classes đã map với CSS Variables:
+---
+
+## 🎨 TAILWIND CLASSES ĐÃ MAP VỚI CSS VARIABLES
 
 ### Colors
 - `bg-primary` → `var(--color-primary)`
@@ -41,13 +72,115 @@ Bạn giờ có thể dùng cả 2 cách:
 - `bg-danger` → `var(--color-danger)`
 - `bg-bg` → `var(--color-bg)`
 - `text-secondary` → `var(--color-text-secondary)`
+- `border-separator` → `var(--color-separator)`
 
 ### Spacing
 - `p-4` → `padding: var(--space-4)` (16px)
 - `m-3` → `margin: var(--space-3)` (12px)
 - `gap-2` → `gap: var(--space-2)` (8px)
+- `mb-4` → `margin-bottom: var(--space-4)` (16px)
 
 ### Border Radius
+- `rounded` → `var(--radius-md)` (12px)
+- `rounded-lg` → `var(--radius-lg)` (16px)
+- `rounded-full` → `var(--radius-full)` (9999px)
+
+### Shadows
+- `shadow` → `var(--shadow-md)`
+- `shadow-lg` → `var(--shadow-lg)`
+- `shadow-card` → `var(--shadow-card)`
+
+---
+
+## 📋 BEST PRACTICES
+
+### ✅ DO:
+```svelte
+<!-- Layout với Tailwind -->
+<div class="flex justify-between items-center mb-4">
+  <span class="text-sm font-medium">Label</span>
+  <button class="btn-icon">Icon</button>
+</div>
+
+<!-- Grid với Tailwind -->
+<div class="grid grid-cols-2 gap-3">
+  <div class="card">Card 1</div>
+  <div class="card">Card 2</div>
+</div>
+
+<!-- Responsive với Tailwind -->
+<div class="hidden md:block lg:flex">
+  Responsive content
+</div>
+```
+
+### ❌ DON'T:
+```svelte
+<!-- ❌ Không tạo custom classes cho layout đơn giản -->
+<style>
+  .my-flex-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+</style>
+
+<!-- ❌ Không override Tailwind cho iOS components -->
+<button class="bg-primary text-white px-4 py-2 rounded">
+  <!-- Dùng .btn-primary thay vì -->
+</button>
+```
+
+---
+
+## 🚀 MIGRATION GUIDE
+
+### Refactor từ custom CSS sang Tailwind:
+
+**Before:**
+```svelte
+<style>
+  .container {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+  }
+</style>
+
+<div class="container">
+  <div>Item 1</div>
+  <div>Item 2</div>
+</div>
+```
+
+**After:**
+```svelte
+<div class="flex gap-3 mt-4">
+  <div>Item 1</div>
+  <div>Item 2</div>
+</div>
+```
+
+---
+
+## 💡 TIPS
+
+1. **Dùng Tailwind cho 80% layout code**
+2. **Giữ iOS custom classes cho buttons, cards, inputs**
+3. **Kết hợp cả 2 khi cần**
+4. **Không duplicate - nếu Tailwind có sẵn thì dùng**
+5. **CSS Variables vẫn là source of truth cho design tokens**
+
+---
+
+## 🎯 RESULT
+
+- ✅ Code ngắn gọn hơn 50%
+- ✅ Consistent spacing & colors
+- ✅ Responsive dễ dàng
+- ✅ Giữ được iOS design system
+- ✅ Best of both worlds!
+
 - `rounded` → `var(--radius-md)` (12px)
 - `rounded-lg` → `var(--radius-lg)` (16px)
 - `rounded-xl` → `var(--radius-xl)` (20px)
