@@ -56,7 +56,7 @@ const defaultAppearance = {
 		}
 	},
 	links: {
-		style: 'filled' as 'filled' | 'outline' | 'soft' | 'ghost',
+		style: 'filled' as 'filled' | 'outline' | 'soft' | 'shadow',
 		borderRadius: 12,
 		shadow: 'sm' as 'none' | 'sm' | 'md' | 'lg', // kept for backward compatibility
 		padding: 16,

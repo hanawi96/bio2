@@ -153,7 +153,7 @@
 
 	const fontSizes = [{ value: 'S', label: 'S' }, { value: 'M', label: 'M' }, { value: 'L', label: 'L' }, { value: 'XL', label: 'XL' }];
 	const alignOptions = [{ value: 'left', icon: 'left' }, { value: 'center', icon: 'center' }, { value: 'right', icon: 'right' }];
-	const linkStyles = [{ value: 'filled', label: 'Filled' }, { value: 'outline', label: 'Outline' }, { value: 'soft', label: 'Soft' }, { value: 'ghost', label: 'Ghost' }];
+	const linkStyles = [{ value: 'filled', label: 'Filled' }, { value: 'outline', label: 'Outline' }, { value: 'soft', label: 'Soft' }, { value: 'shadow', label: 'Shadow' }];
 	const headerStyles = [{ value: 'classic', label: 'Classic' }, { value: 'minimal', label: 'Minimal' }];
 	const avatarSizes = [{ value: 'S', label: 'S' }, { value: 'M', label: 'M' }, { value: 'L', label: 'L' }];
 	const avatarShapes = [{ value: 'circle', label: 'Circle' }, { value: 'rounded', label: 'Rounded' }, { value: 'square', label: 'Square' }];
@@ -271,6 +271,11 @@
 	}
 
 	function getShadow(): string {
+		// Shadow style có shadow cố định
+		if (appearance.settings.links.style === 'shadow') {
+			return '4px 4px 0 rgba(0, 0, 0, 0.9)';
+		}
+		
 		// Nếu bật custom shadow, dùng custom values
 		if (appearance.settings.links.showShadow) {
 			const blur = appearance.settings.links.shadowBlur ?? 8;
@@ -301,6 +306,7 @@
 		const colors = appearance.settings.colors;
 		if (s === 'filled') return colors.primary;
 		if (s === 'soft') return `${colors.primary}15`;
+		if (s === 'shadow') return colors.primary;
 		return colors.cardBackground;
 	}
 
@@ -313,8 +319,52 @@
 		// Auto based on style
 		const s = appearance.settings.links.style;
 		if (s === 'filled') return '#fff';
+		if (s === 'shadow') return '#fff';
 		if (s === 'soft' || s === 'outline') return appearance.settings.colors.primary;
 		return appearance.settings.colors.text;
+	}
+
+	// Generate style for block demo in style selector
+	function getBlockDemoStyle(styleType: string): string {
+		const colors = appearance.settings.colors;
+		const styles: string[] = [];
+		
+		// Determine text color based on custom textColor or auto logic
+		let textColor: string;
+		if (appearance.settings.links.textColor) {
+			// User has set custom text color
+			textColor = appearance.settings.links.textColor;
+			console.log(`[Block Demo] Using custom textColor: ${textColor} for style: ${styleType}`);
+		} else {
+			// Auto determine based on style
+			if (styleType === 'filled' || styleType === 'shadow') {
+				textColor = '#fff';
+			} else if (styleType === 'soft' || styleType === 'outline') {
+				textColor = colors.primary;
+			} else {
+				textColor = colors.text;
+			}
+			console.log(`[Block Demo] Auto textColor: ${textColor} for style: ${styleType}`);
+		}
+		
+		if (styleType === 'filled') {
+			styles.push(`background: ${colors.primary}`);
+			styles.push(`color: ${textColor}`);
+		} else if (styleType === 'outline') {
+			styles.push('background: transparent');
+			styles.push(`border: 2px solid ${colors.primary}`);
+			styles.push(`color: ${textColor}`);
+		} else if (styleType === 'soft') {
+			styles.push(`background: ${colors.primary}15`);
+			styles.push(`color: ${textColor}`);
+		} else if (styleType === 'shadow') {
+			styles.push(`background: ${colors.primary}`);
+			styles.push(`color: ${textColor}`);
+			styles.push('box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.9)');
+		}
+		
+		console.log(`[Block Demo] Final style for ${styleType}:`, styles.join('; '));
+		return styles.join('; ');
 	}
 
 	function getLinkBorder(): string {
@@ -1332,11 +1382,19 @@
 					<div class="card">
 						<div class="card-header"><h2>Block Style</h2></div>
 						<div class="card-body">
-							<div class="grid-4">
+							<div class="block-style-grid">
 								{#each linkStyles as s}
-									<button class="link-style-card" class:active={appearance.settings.links.style === s.value} onclick={() => updateSetting('links.style', s.value)}>
-										<div class="link-demo {s.value}">Block</div>
-										<span class="text-sm">{s.label}</span>
+									<button 
+										class="block-style-card" 
+										class:active={appearance.settings.links.style === s.value} 
+										onclick={() => updateSetting('links.style', s.value)}
+									>
+										<div class="block-style-preview" style="background:{getBgStyle()}">
+											<div class="block-style-demo" style="{getBlockDemoStyle(s.value)}">
+												<span>Link</span>
+											</div>
+										</div>
+										<span class="block-style-label">{s.label}</span>
 									</button>
 								{/each}
 							</div>
@@ -1974,14 +2032,71 @@
 	.advanced-toggle { background: transparent; border: none; color: var(--color-text-secondary); font-size: var(--text-sm); font-weight: 500; cursor: pointer; padding: 0; display: flex; align-items: center; gap: var(--space-2); }
 	.advanced-toggle:hover { color: var(--color-text); }
 
-	.link-style-card { background: transparent; padding: 0; text-align: center; }
-	.link-style-card.active span { color: var(--color-primary); font-weight: 500; }
-	.link-demo { padding: var(--space-3); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-2); }
-	.link-demo.filled { background: var(--color-primary); color: white; }
-	.link-demo.outline { background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); }
-	.link-demo.soft { background: var(--color-primary-light); color: var(--color-primary); }
-	.link-demo.ghost { background: transparent; color: var(--color-text); }
-	.link-style-card.active .link-demo { box-shadow: 0 0 0 2px var(--color-primary); }
+	/* Block Style Grid - Modern Context-Aware Design */
+	.block-style-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 12px;
+	}
+
+	.block-style-card {
+		background: transparent;
+		border: 3px solid transparent;
+		border-radius: 12px;
+		padding: 0;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		overflow: hidden;
+	}
+
+	.block-style-card:hover {
+		border-color: var(--color-separator);
+		transform: translateY(-2px);
+	}
+
+	.block-style-card.active {
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 3px var(--color-primary-light);
+	}
+
+	.block-style-preview {
+		width: 100%;
+		height: 120px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+		border-radius: 9px 9px 0 0;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.block-style-demo {
+		width: 100%;
+		padding: 12px 16px;
+		border-radius: 8px;
+		font-size: 13px;
+		font-weight: 500;
+		text-align: center;
+		transition: all 0.2s ease;
+		position: relative;
+		z-index: 1;
+	}
+
+	.block-style-label {
+		display: block;
+		padding: 10px;
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--color-text);
+		text-align: center;
+		background: var(--color-bg);
+	}
+
+	.block-style-card.active .block-style-label {
+		color: var(--color-primary);
+		font-weight: 600;
+	}
 
 	.preview { position: sticky; top: 80px; height: fit-content; }
 	.preview-header { margin-bottom: var(--space-3); display: flex; justify-content: space-between; align-items: center; }
