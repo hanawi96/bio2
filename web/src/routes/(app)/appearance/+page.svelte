@@ -153,7 +153,7 @@
 
 	const fontSizes = [{ value: 'S', label: 'S' }, { value: 'M', label: 'M' }, { value: 'L', label: 'L' }, { value: 'XL', label: 'XL' }];
 	const alignOptions = [{ value: 'left', icon: 'left' }, { value: 'center', icon: 'center' }, { value: 'right', icon: 'right' }];
-	const linkStyles = [{ value: 'filled', label: 'Filled' }, { value: 'outline', label: 'Outline' }, { value: 'soft', label: 'Soft' }, { value: 'shadow', label: 'Shadow' }];
+	const linkStyles = [{ value: 'filled', label: 'Filled' }, { value: 'outline', label: 'Outline' }, { value: 'elevated', label: 'Elevated' }, { value: 'shadow', label: 'Shadow' }];
 	const headerStyles = [{ value: 'classic', label: 'Classic' }, { value: 'minimal', label: 'Minimal' }];
 	const avatarSizes = [{ value: 'S', label: 'S' }, { value: 'M', label: 'M' }, { value: 'L', label: 'L' }];
 	const avatarShapes = [{ value: 'circle', label: 'Circle' }, { value: 'rounded', label: 'Rounded' }, { value: 'square', label: 'Square' }];
@@ -271,9 +271,14 @@
 	}
 
 	function getShadow(): string {
-		// Shadow style có shadow cố định
+		// Shadow style có shadow đen cố định
 		if (appearance.settings.links.style === 'shadow') {
 			return '4px 4px 0 rgba(0, 0, 0, 0.9)';
+		}
+		
+		// Elevated style có shadow màu primary
+		if (appearance.settings.links.style === 'elevated') {
+			return `4px 4px 0 ${appearance.settings.colors.primary}`;
 		}
 		
 		// Nếu bật custom shadow, dùng custom values
@@ -292,12 +297,10 @@
 			return `${offsetX}px ${offsetY}px ${blur}px rgba(${r}, ${g}, ${b}, ${opacity})`;
 		}
 		
-		// Khi tắt showShadow, return 'none' ngay lập tức
 		return 'none';
 	}
 
 	function getLinkBg(): string {
-		// Nếu tắt background, return transparent
 		if (!appearance.settings.links.showBackground) {
 			return 'transparent';
 		}
@@ -305,8 +308,9 @@
 		const s = appearance.settings.links.style;
 		const colors = appearance.settings.colors;
 		if (s === 'filled') return colors.primary;
-		if (s === 'soft') return `${colors.primary}15`;
+		if (s === 'elevated') return 'transparent';
 		if (s === 'shadow') return colors.primary;
+		if (s === 'outline') return 'transparent';
 		return colors.cardBackground;
 	}
 
@@ -320,32 +324,35 @@
 		const s = appearance.settings.links.style;
 		if (s === 'filled') return '#fff';
 		if (s === 'shadow') return '#fff';
-		if (s === 'soft' || s === 'outline') return appearance.settings.colors.primary;
+		if (s === 'elevated' || s === 'outline') return appearance.settings.colors.primary;
 		return appearance.settings.colors.text;
 	}
 
 	// Generate style for block demo in style selector
+	// Helper: Get text color for a specific style type (used by block demo)
+	function getTextColorForStyle(styleType: string): string {
+		// Check custom textColor first
+		if (appearance.settings.links.textColor) {
+			return appearance.settings.links.textColor;
+		}
+		
+		// Auto based on style type - match getLinkColor() logic
+		if (styleType === 'filled' || styleType === 'shadow') {
+			// Dark background (primary color) → white text for contrast
+			return '#fff';
+		}
+		if (styleType === 'elevated' || styleType === 'outline') {
+			// Transparent background → use primary color for text
+			return appearance.settings.colors.primary;
+		}
+		return appearance.settings.colors.text;
+	}
+
+	// Generate style for block demo in style selector  
 	function getBlockDemoStyle(styleType: string): string {
 		const colors = appearance.settings.colors;
 		const styles: string[] = [];
-		
-		// Determine text color based on custom textColor or auto logic
-		let textColor: string;
-		if (appearance.settings.links.textColor) {
-			// User has set custom text color
-			textColor = appearance.settings.links.textColor;
-			console.log(`[Block Demo] Using custom textColor: ${textColor} for style: ${styleType}`);
-		} else {
-			// Auto determine based on style
-			if (styleType === 'filled' || styleType === 'shadow') {
-				textColor = '#fff';
-			} else if (styleType === 'soft' || styleType === 'outline') {
-				textColor = colors.primary;
-			} else {
-				textColor = colors.text;
-			}
-			console.log(`[Block Demo] Auto textColor: ${textColor} for style: ${styleType}`);
-		}
+		const textColor = getTextColorForStyle(styleType);
 		
 		if (styleType === 'filled') {
 			styles.push(`background: ${colors.primary}`);
@@ -354,28 +361,31 @@
 			styles.push('background: transparent');
 			styles.push(`border: 2px solid ${colors.primary}`);
 			styles.push(`color: ${textColor}`);
-		} else if (styleType === 'soft') {
-			styles.push(`background: ${colors.primary}15`);
+		} else if (styleType === 'elevated') {
+			styles.push('background: transparent');
+			styles.push(`border: 3px solid ${colors.primary}`);
 			styles.push(`color: ${textColor}`);
+			styles.push(`box-shadow: 4px 4px 0 ${colors.primary}`);
 		} else if (styleType === 'shadow') {
 			styles.push(`background: ${colors.primary}`);
 			styles.push(`color: ${textColor}`);
 			styles.push('box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.9)');
 		}
 		
-		console.log(`[Block Demo] Final style for ${styleType}:`, styles.join('; '));
 		return styles.join('; ');
 	}
 
 	function getLinkBorder(): string {
-		// Nếu bật showBorder, dùng custom border
 		if (appearance.settings.links.showBorder) {
 			const width = appearance.settings.links.borderWidth || 1;
 			const color = appearance.settings.links.borderColor || '#e5e5ea';
 			return `${width}px solid ${color}`;
 		}
 		
-		// Fallback: nếu style là outline, dùng primary color
+		if (appearance.settings.links.style === 'elevated') {
+			return `3px solid ${appearance.settings.colors.primary}`;
+		}
+		
 		if (appearance.settings.links.style === 'outline') {
 			return `1px solid ${appearance.settings.colors.primary}`;
 		}

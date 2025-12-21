@@ -56,7 +56,7 @@ const defaultAppearance = {
 		}
 	},
 	links: {
-		style: 'filled' as 'filled' | 'outline' | 'soft' | 'shadow',
+		style: 'filled' as 'filled' | 'outline' | 'elevated' | 'shadow',
 		borderRadius: 12,
 		shadow: 'sm' as 'none' | 'sm' | 'md' | 'lg', // kept for backward compatibility
 		padding: 16,
@@ -264,7 +264,7 @@ function mapPresetToSettings(presetConfig: Record<string, any>): Partial<Appeara
 			gap: parseSize(linkDefaults.gap) ?? 12,
 			textAlign: linkDefaults.textAlign || 'center',
 			fontSize: linkDefaults.fontSize || 'M',
-			textColor: '',
+			textColor: linkDefaults.textColor || '', // Map textColor from theme preset
 			showBackground: true,
 			showBorder: false,
 			borderColor: '#e5e5ea',
